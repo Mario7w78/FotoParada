@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "405511992077",
+    "project_id": "fotoparada",
+    "storage_bucket": "fotoparada.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405511992077:android:913053415366b5329d7644",
+        "android_client_info": {
+          "package_name": "com.example.fotoparada"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9pO2k3VVI_Rvya2hegiIvXFE5CpY93D4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
