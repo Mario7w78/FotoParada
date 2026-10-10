@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/login_screen.dart';
+import 'view/login_view.dart';
 
 void main() async {
-  // Aseguramos que los widgets estén inicializados antes de arrancar Firebase
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Inicializamos Firebase con las opciones generadas por la CLI
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   runApp(const FotoParadaApp());
 }
 
@@ -27,8 +25,7 @@ class FotoParadaApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      // La app inicia pidiendo credenciales
-      home: const LoginScreen(),
+      home: const LoginView(),
     );
   }
 }

@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 
-class CollectionsScreen extends StatelessWidget {
-  const CollectionsScreen({super.key});
+class MapView extends StatelessWidget {
+  const MapView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Colecciones'),
+        title: const Text('Mapa'),
         centerTitle: true,
       ),
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.collections_bookmark, size: 100, color: Colors.blueGrey),
+            Icon(Icons.map, size: 100, color: Colors.blueGrey),
             SizedBox(height: 20),
             Text(
-              'Tus lugares y fotos guardadas',
+              'Aquí integraremos Google Maps',
               style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Aparecerán pines con las fotos populares',
+              style: TextStyle(color: Colors.grey),
             ),
           ],
         ),
