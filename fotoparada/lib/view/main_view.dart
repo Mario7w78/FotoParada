@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'collections_view.dart';
 import 'feed_view.dart';
-import 'map_view.dart';
+import 'Map/map_home_view.dart';
 import 'profile_view.dart';
 
 class MainView extends StatefulWidget {
@@ -16,7 +16,7 @@ class _MainViewState extends State<MainView> {
   int _currentIndex = 0;
 
   final List<Widget> _views = const [
-    MapView(),
+    MapHomeView(),
     FeedView(),
     CollectionsView(),
     ProfileView(),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../routes/app_routes.dart';
 import '../viewmodel/login_viewmodel.dart';
-import 'forgot_password_view.dart';
-import 'main_view.dart';
-import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -37,10 +35,7 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (exito) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainView()),
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.main);
     } else if (_viewModel.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_viewModel.errorMessage!)),
@@ -113,12 +108,7 @@ class _LoginViewState extends State<LoginView> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordView(),
-                        ),
-                      );
+                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
                     },
                     child: const Text('¿Olvidaste tu contraseña?'),
                   ),
@@ -151,12 +141,7 @@ class _LoginViewState extends State<LoginView> {
                     const Text('¿No tienes cuenta?'),
                     TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterView(),
-                          ),
-                        );
+                        Navigator.pushNamed(context, AppRoutes.register);
                       },
                       child: const Text(
                         'Regístrate',

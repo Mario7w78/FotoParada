@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../routes/app_routes.dart';
 import '../viewmodel/register_viewmodel.dart';
-import 'main_view.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -38,9 +38,9 @@ class _RegisterViewState extends State<RegisterView> {
     if (!mounted) return;
 
     if (exito) {
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushNamedAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const MainView()),
+        AppRoutes.main,
         (route) => false,
       );
     } else if (_viewModel.errorMessage != null) {
