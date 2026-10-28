@@ -18,6 +18,21 @@ class FeedViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  // La vista puede destruirse (p. ej. al cambiar de pestaña) mientras
+  // cargarFotos() sigue esperando a la API.
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   Future<void> cargarFotos() async {
     _isLoading = true;
     _errorMessage = null;

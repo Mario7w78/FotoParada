@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import 'Components/location_search_bar.dart';
 import 'map_preview_view.dart';
 import 'map_view.dart';
 
-class MapHomeView extends StatelessWidget {
-  const MapHomeView({super.key});
+class MapHomeView extends StatefulWidget {
+  const MapHomeView({super.key, required this.mapViewModel});
+  final MapViewModel mapViewModel;
 
+  @override
+  State<MapHomeView> createState() => _MapHomeViewState();
+}
+
+class _MapHomeViewState extends State<MapHomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,23 +34,18 @@ class MapHomeView extends StatelessWidget {
                     "¿Dónde hacemos las fotos hoy?",
                     style: TextStyle(fontWeight: .bold, fontSize: 24),
                   ),
-                  TextField(
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.search, color: Colors.blue),
-                      hint: Text(
-                        "Buscar un lugar o una ciudad",
-                        style: TextStyle(color: Colors.blueGrey),
+                  LocationSearchBar(mapViewModel: widget.mapViewModel,),
+                  MapPreviewView(mapViewModel: widget.mapViewModel,),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Descubre cerca de ti",
+                        style: TextStyle(fontWeight: .bold, fontSize: 20),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.all(12),
-                    ),
+                      TextButton(onPressed: () {}, child: Text("Ver Todos")),
+                    ],
                   ),
-                  MapPreviewView(),
                 ],
               ),
             ],
@@ -52,3 +55,4 @@ class MapHomeView extends StatelessWidget {
     );
   }
 }
+

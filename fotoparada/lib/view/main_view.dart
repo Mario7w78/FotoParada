@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
 import 'collections_view.dart';
 import 'feed_view.dart';
@@ -15,17 +16,27 @@ class MainView extends StatefulWidget {
 class _MainViewState extends State<MainView> {
   int _currentIndex = 0;
 
-  final List<Widget> _views = const [
-    MapHomeView(),
-    FeedView(),
-    CollectionsView(),
-    ProfileView(),
+  // MainView es el dueño del viewmodel del mapa: lo crea y lo libera.
+  final MapViewModel _mapViewModel = MapViewModel();
+
+  late final List<Widget> _views = [
+    MapHomeView(mapViewModel: _mapViewModel),
+    const FeedView(),
+    const CollectionsView(),
+    const ProfileView(),
   ];
+
+  @override
+  void dispose() {
+    _mapViewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _views[_currentIndex],
+      // IndexedStack mantiene vivas todas las pestañas al cambiar entre ellas.
+      body: IndexedStack(index: _currentIndex, children: _views),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
