@@ -368,6 +368,52 @@ void main() {
     });
   });
 
+  group('fecha de toma', () {
+    test('la cámara no permite cambiarla', () async {
+      await viewModel.elegirDeCamara();
+
+      expect(viewModel.fechaEditable, isFalse);
+    });
+
+    test('la galería con fecha en el EXIF no permite cambiarla', () async {
+      metadata.exif = MetadatosExif(fecha: DateTime(2020, 5, 17));
+      await viewModel.elegirDeGaleria();
+
+      expect(viewModel.fechaEditable, isFalse);
+    });
+
+    test('la galería sin fecha en el EXIF permite elegirla y se envía', () async {
+      await viewModel.elegirDeGaleria();
+      expect(viewModel.fechaEditable, isTrue);
+
+      final fecha = DateTime(2021, 3, 4);
+      viewModel.cambiarFechaToma(fecha);
+      viewModel.cambiarTitulo('Título');
+      await viewModel.publicar();
+
+      expect(fotos.fechaToma, fecha);
+    });
+
+    test('detectar la ubicación no pisa la fecha elegida', () async {
+      await viewModel.elegirDeGaleria();
+      final fecha = DateTime(2021, 3, 4);
+      viewModel.cambiarFechaToma(fecha);
+
+      await viewModel.obtenerUbicacion();
+
+      expect(viewModel.fechaToma, fecha);
+    });
+
+    test('otra foto vuelve a evaluar si se puede cambiar', () async {
+      metadata.exif = MetadatosExif(fecha: DateTime(2020, 5, 17));
+      await viewModel.elegirDeGaleria();
+      metadata.exif = const MetadatosExif();
+      await viewModel.elegirDeGaleria();
+
+      expect(viewModel.fechaEditable, isTrue);
+    });
+  });
+
   group('FormatoImagen.detectar', () {
     test('reconoce JPG y PNG por sus primeros bytes', () {
       expect(FormatoImagen.detectar([0xFF, 0xD8, 0xFF, 0xE0]), FormatoImagen.jpg);

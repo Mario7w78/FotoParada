@@ -67,6 +67,13 @@ class UploadPhotoViewModel extends ChangeNotifier {
   DateTime? _fechaToma;
   DateTime? get fechaToma => _fechaToma;
 
+  bool _fechaDeExif = false;
+
+  /// Solo una foto de galería sin fecha en su EXIF necesita que se la indiquen:
+  /// en las demás la fecha es conocida.
+  bool get fechaEditable =>
+      _origenImagen == OrigenImagen.galeria && !_fechaDeExif;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -109,6 +116,11 @@ class UploadPhotoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cambiarFechaToma(DateTime valor) {
+    _fechaToma = valor;
+    notifyListeners();
+  }
+
   Future<void> elegirDeCamara() =>
       _elegirImagen(ImageSource.camera, OrigenImagen.camara);
 
@@ -139,6 +151,7 @@ class UploadPhotoViewModel extends ChangeNotifier {
     _imagen = File(archivo.path);
     _origenImagen = origen;
     _fechaToma = DateTime.now();
+    _fechaDeExif = false;
     _latitud = null;
     _longitud = null;
     _origenUbicacion = null;
@@ -165,6 +178,7 @@ class UploadPhotoViewModel extends ChangeNotifier {
         if (solicitud != _ultimaSolicitud) return;
 
         _fechaToma = exif.fecha ?? _fechaToma;
+        _fechaDeExif = exif.fecha != null;
         punto = exif.ubicacion;
         if (punto != null) origen = OrigenUbicacion.foto;
       }

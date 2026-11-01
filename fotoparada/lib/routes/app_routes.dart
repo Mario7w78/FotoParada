@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:fotoparada/view/Map/map_full_screen_view.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../models/foto_model.dart';
+import '../view/edit_photo_view.dart';
 import '../view/forgot_password_view.dart';
 import '../view/login_view.dart';
 import '../view/main_view.dart';
+import '../view/my_photos_view.dart';
 import '../view/register_view.dart';
 import '../view/upload_photo_view.dart';
 
@@ -17,6 +20,8 @@ class AppRoutes {
   static const String main = '/main';
   static const String fullScreenMap = '/fullScreenMap';
   static const String upload = '/upload';
+  static const String myPhotos = '/my-photos';
+  static const String editPhoto = '/edit-photo';
 
   static final Map<String, WidgetBuilder> routes = {
     login: (context) => const LoginView(),
@@ -24,6 +29,10 @@ class AppRoutes {
     forgotPassword: (context) => const ForgotPasswordView(),
     main: (context) => const MainView(),
     upload: (context) => const UploadPhotoView(),
+    myPhotos: (context) => const MyPhotosView(),
+    editPhoto: (context) => EditPhotoView(
+      foto: ModalRoute.of(context)!.settings.arguments as Foto,
+    ),
     fullScreenMap: (context) => MapFullScreenView(
       mapViewModel: ModalRoute.of(context)!.settings.arguments as MapViewModel,
     ),

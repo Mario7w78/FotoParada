@@ -124,20 +124,13 @@ class PhotoService {
     );
   }
 
-  /// Guarda solo los campos editables: los likes, el dueño, el archivo y la
-  /// fecha de subida no se tocan para no pisar cambios concurrentes.
-  Future<void> actualizarFoto(Foto foto) async {
+  /// Guarda solo [campos] (ver [Foto.camposCambiados]) para no pisar cambios
+  /// concurrentes en el resto del documento, como los likes.
+  Future<void> actualizarFoto(String id, Map<String, dynamic> campos) async {
+    if (campos.isEmpty) return;
+
     try {
-      await _fotos.doc(foto.id).update({
-        'titulo': foto.titulo,
-        'descripcion': foto.descripcion,
-        'categoria': foto.categoria.name,
-        'latitud': foto.latitud,
-        'longitud': foto.longitud,
-        'nombreLugar': foto.nombreLugar,
-        'fechaToma': Timestamp.fromDate(foto.fechaToma),
-        'privacidad': foto.privacidad.name,
-      });
+      await _fotos.doc(id).update(campos);
     } on FirebaseException catch (e) {
       throw PhotoException(_mapError(e));
     }
@@ -208,6 +201,8 @@ class PhotoService {
         return 'Se superó el límite de almacenamiento.';
       case 'canceled':
         return 'La operación fue cancelada.';
+      case 'failed-precondition':
+        return 'Falta crear el índice de Firestore para esta consulta.';
       default:
         return 'Ocurrió un error inesperado. Intenta de nuevo.';
     }

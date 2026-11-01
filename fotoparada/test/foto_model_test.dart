@@ -84,6 +84,26 @@ void main() {
       expect(foto.fechaSubida, isA<DateTime>());
     });
 
+    test('camposCambiados devuelve solo lo editable que difiere', () {
+      expect(fotoCompleta.camposCambiados(fotoCompleta), isEmpty);
+
+      final cambiada = fotoCompleta.copyWith(
+        titulo: 'Nuevo',
+        categoria: CategoriaFoto.arte,
+        fechaToma: DateTime.utc(2020),
+        // Estos no son editables y nunca deben enviarse.
+        likes: 99,
+        uid: 'otro',
+        rutaStorage: 'otra/ruta.jpg',
+      );
+
+      expect(cambiada.camposCambiados(fotoCompleta), {
+        'titulo': 'Nuevo',
+        'categoria': 'arte',
+        'fechaToma': Timestamp.fromDate(DateTime.utc(2020)),
+      });
+    });
+
     test('copyWith cambia solo los campos indicados', () {
       final copia = fotoCompleta.copyWith(
         titulo: 'Nuevo',

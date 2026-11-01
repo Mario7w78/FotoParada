@@ -122,6 +122,22 @@ class Foto {
     };
   }
 
+  /// Campos editables que difieren de [original], listos para Firestore. No
+  /// incluye likes, dueño, archivo ni fecha de subida porque no se editan.
+  Map<String, dynamic> camposCambiados(Foto original) {
+    return {
+      if (titulo != original.titulo) 'titulo': titulo,
+      if (descripcion != original.descripcion) 'descripcion': descripcion,
+      if (categoria != original.categoria) 'categoria': categoria.name,
+      if (latitud != original.latitud) 'latitud': latitud,
+      if (longitud != original.longitud) 'longitud': longitud,
+      if (nombreLugar != original.nombreLugar) 'nombreLugar': nombreLugar,
+      if (!fechaToma.isAtSameMomentAs(original.fechaToma))
+        'fechaToma': Timestamp.fromDate(fechaToma),
+      if (privacidad != original.privacidad) 'privacidad': privacidad.name,
+    };
+  }
+
   Foto copyWith({
     String? id,
     String? uid,
