@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
 
@@ -12,11 +13,89 @@ void main() {
         'longitud': 0,
       });
 
-      expect(foto.id, 1);
+      expect(foto.id, '1');
       expect(foto.urlImagen, 'https://example.com/foto.jpg');
       expect(foto.titulo, 'Foto de prueba');
       expect(foto.latitud, 0.0);
       expect(foto.longitud, 0.0);
+    });
+  });
+
+  group('Foto en Firestore', () {
+    final fotoCompleta = Foto(
+      id: 'abc',
+      uid: 'usuario1',
+      urlImagen: 'https://example.com/foto.jpg',
+      rutaStorage: 'fotos/usuario1/abc.jpg',
+      titulo: 'Atardecer',
+      descripcion: 'En la playa',
+      categoria: CategoriaFoto.naturaleza,
+      latitud: -12.5,
+      longitud: -76.25,
+      nombreLugar: 'Lima',
+      fechaToma: DateTime.utc(2026, 1, 2),
+      fechaSubida: DateTime.utc(2026, 1, 3),
+      privacidad: PrivacidadFoto.amigos,
+      likes: 7,
+    );
+
+    test('toMap y fromMap conservan todos los campos', () {
+      final foto = Foto.fromMap('abc', fotoCompleta.toMap());
+
+      expect(foto.id, 'abc');
+      expect(foto.uid, 'usuario1');
+      expect(foto.urlImagen, 'https://example.com/foto.jpg');
+      expect(foto.rutaStorage, 'fotos/usuario1/abc.jpg');
+      expect(foto.titulo, 'Atardecer');
+      expect(foto.descripcion, 'En la playa');
+      expect(foto.categoria, CategoriaFoto.naturaleza);
+      expect(foto.latitud, -12.5);
+      expect(foto.longitud, -76.25);
+      expect(foto.nombreLugar, 'Lima');
+      expect(foto.fechaToma.isAtSameMomentAs(DateTime.utc(2026, 1, 2)), isTrue);
+      expect(
+        foto.fechaSubida.isAtSameMomentAs(DateTime.utc(2026, 1, 3)),
+        isTrue,
+      );
+      expect(foto.privacidad, PrivacidadFoto.amigos);
+      expect(foto.likes, 7);
+    });
+
+    test('toMap guarda enums como texto, fechas como Timestamp y sin id', () {
+      final mapa = fotoCompleta.toMap();
+
+      expect(mapa.containsKey('id'), isFalse);
+      expect(mapa['categoria'], 'naturaleza');
+      expect(mapa['privacidad'], 'amigos');
+      expect(mapa['fechaToma'], isA<Timestamp>());
+    });
+
+    test('una privacidad desconocida o ausente se trata como privada', () {
+      expect(
+        Foto.fromMap('a', {'privacidad': 'otra'}).privacidad,
+        PrivacidadFoto.privada,
+      );
+      expect(Foto.fromMap('a', {}).privacidad, PrivacidadFoto.privada);
+    });
+
+    test('tolera fechaSubida nula de un serverTimestamp pendiente', () {
+      final foto = Foto.fromMap('a', {'fechaSubida': null});
+
+      expect(foto.fechaSubida, isA<DateTime>());
+    });
+
+    test('copyWith cambia solo los campos indicados', () {
+      final copia = fotoCompleta.copyWith(
+        titulo: 'Nuevo',
+        privacidad: PrivacidadFoto.privada,
+      );
+
+      expect(copia.titulo, 'Nuevo');
+      expect(copia.privacidad, PrivacidadFoto.privada);
+      expect(copia.id, fotoCompleta.id);
+      expect(copia.uid, fotoCompleta.uid);
+      expect(copia.likes, fotoCompleta.likes);
+      expect(copia.fechaToma, fotoCompleta.fechaToma);
     });
   });
 }

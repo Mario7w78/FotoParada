@@ -21,8 +21,8 @@ class ApiService {
     final List<dynamic> jsonList = json.decode(response.body);
 
     return jsonList.map((json) {
-      return Foto(
-        id: int.tryParse(json['id'].toString()) ?? 0,
+      return Foto.externa(
+        id: json['id'].toString(),
         urlImagen: json['download_url'] ?? '',
         titulo: 'Foto por ${json['author']}',
         latitud: 0.0,
