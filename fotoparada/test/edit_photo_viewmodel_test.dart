@@ -206,7 +206,7 @@ void main() {
 
       expect(await viewModel.eliminar(), isTrue);
       expect(servicio.eliminadas.single.titulo, 'Atardecer');
-      expect(servicio.eliminadas.single.rutaStorage, 'fotos/usuario1/abc.jpg');
+      expect(servicio.eliminadas.single.id, 'abc');
     });
 
     test('un error se informa', () async {

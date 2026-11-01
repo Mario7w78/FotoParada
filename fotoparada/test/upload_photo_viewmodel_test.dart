@@ -413,23 +413,4 @@ void main() {
       expect(viewModel.fechaEditable, isTrue);
     });
   });
-
-  group('FormatoImagen.detectar', () {
-    test('reconoce JPG y PNG por sus primeros bytes', () {
-      expect(FormatoImagen.detectar([0xFF, 0xD8, 0xFF, 0xE0]), FormatoImagen.jpg);
-      expect(FormatoImagen.detectar([0x89, 0x50, 0x4E, 0x47]), FormatoImagen.png);
-    });
-
-    test('rechaza otros formatos y archivos vacíos', () {
-      expect(FormatoImagen.detectar([0x52, 0x49, 0x46, 0x46]), isNull);
-      expect(FormatoImagen.detectar([]), isNull);
-    });
-
-    test('expone la extensión y el contentType reales', () {
-      expect(FormatoImagen.png.extension, 'png');
-      expect(FormatoImagen.png.contentType, 'image/png');
-      expect(FormatoImagen.jpg.extension, 'jpg');
-      expect(FormatoImagen.jpg.contentType, 'image/jpeg');
-    });
-  });
 }

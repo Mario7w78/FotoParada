@@ -7,8 +7,12 @@ enum PrivacidadFoto { publica, amigos, privada }
 class Foto {
   final String id;
   final String uid;
+
+  /// Solo la usan las fotos externas (ver [Foto.externa]): las guardadas en
+  /// Firestore llevan la imagen en [imagenBase64] y [miniaturaBase64].
   final String urlImagen;
-  final String rutaStorage;
+  final String imagenBase64;
+  final String miniaturaBase64;
   final String titulo;
   final String descripcion;
   final CategoriaFoto categoria;
@@ -23,8 +27,9 @@ class Foto {
   Foto({
     required this.id,
     required this.uid,
-    required this.urlImagen,
-    required this.rutaStorage,
+    this.urlImagen = '',
+    this.imagenBase64 = '',
+    this.miniaturaBase64 = '',
     required this.titulo,
     required this.descripcion,
     required this.categoria,
@@ -51,7 +56,6 @@ class Foto {
       id: id,
       uid: '',
       urlImagen: urlImagen,
-      rutaStorage: '',
       titulo: titulo,
       descripcion: '',
       categoria: CategoriaFoto.lugares,
@@ -82,8 +86,8 @@ class Foto {
     return Foto(
       id: id,
       uid: data['uid'] as String? ?? '',
-      urlImagen: data['urlImagen'] as String? ?? '',
-      rutaStorage: data['rutaStorage'] as String? ?? '',
+      imagenBase64: data['imagenBase64'] as String? ?? '',
+      miniaturaBase64: data['miniaturaBase64'] as String? ?? '',
       titulo: data['titulo'] as String? ?? '',
       descripcion: data['descripcion'] as String? ?? '',
       categoria: CategoriaFoto.values.asNameMap()[data['categoria']] ??
@@ -107,8 +111,8 @@ class Foto {
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
-      'urlImagen': urlImagen,
-      'rutaStorage': rutaStorage,
+      'imagenBase64': imagenBase64,
+      'miniaturaBase64': miniaturaBase64,
       'titulo': titulo,
       'descripcion': descripcion,
       'categoria': categoria.name,
@@ -123,7 +127,7 @@ class Foto {
   }
 
   /// Campos editables que difieren de [original], listos para Firestore. No
-  /// incluye likes, dueño, archivo ni fecha de subida porque no se editan.
+  /// incluye likes, dueño, imagen ni fecha de subida porque no se editan.
   Map<String, dynamic> camposCambiados(Foto original) {
     return {
       if (titulo != original.titulo) 'titulo': titulo,
@@ -142,7 +146,8 @@ class Foto {
     String? id,
     String? uid,
     String? urlImagen,
-    String? rutaStorage,
+    String? imagenBase64,
+    String? miniaturaBase64,
     String? titulo,
     String? descripcion,
     CategoriaFoto? categoria,
@@ -158,7 +163,8 @@ class Foto {
       id: id ?? this.id,
       uid: uid ?? this.uid,
       urlImagen: urlImagen ?? this.urlImagen,
-      rutaStorage: rutaStorage ?? this.rutaStorage,
+      imagenBase64: imagenBase64 ?? this.imagenBase64,
+      miniaturaBase64: miniaturaBase64 ?? this.miniaturaBase64,
       titulo: titulo ?? this.titulo,
       descripcion: descripcion ?? this.descripcion,
       categoria: categoria ?? this.categoria,

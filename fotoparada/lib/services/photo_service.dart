@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/foto_model.dart';
+import 'imagen_compresor.dart';
 
 class PhotoException implements Exception {
   const PhotoException(this.message);
@@ -14,48 +16,25 @@ class PhotoException implements Exception {
   String toString() => message;
 }
 
-enum FormatoImagen {
-  jpg('jpg', 'image/jpeg'),
-  png('png', 'image/png');
+/// Límite de Firestore para un documento.
+const int maxBytesDocumento = 1024 * 1024;
 
-  const FormatoImagen(this.extension, this.contentType);
-
-  final String extension;
-  final String contentType;
-
-  /// Se basa en los primeros bytes porque la extensión no es fiable:
-  /// image_picker conserva el nombre original aunque convierta la imagen.
-  static FormatoImagen? detectar(List<int> cabecera) {
-    if (cabecera.length >= 3 &&
-        cabecera[0] == 0xFF &&
-        cabecera[1] == 0xD8 &&
-        cabecera[2] == 0xFF) {
-      return FormatoImagen.jpg;
-    }
-    if (cabecera.length >= 4 &&
-        cabecera[0] == 0x89 &&
-        cabecera[1] == 0x50 &&
-        cabecera[2] == 0x4E &&
-        cabecera[3] == 0x47) {
-      return FormatoImagen.png;
-    }
-    return null;
-  }
-}
+// Holgura para los nombres de los campos y los valores de tamaño fijo.
+const int _margenCamposBytes = 2 * 1024;
 
 class PhotoService {
-  PhotoService({FirebaseFirestore? firestore, FirebaseStorage? storage})
+  PhotoService({FirebaseFirestore? firestore, ImagenCompresor? compresor})
       : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+        _compresor = compresor ?? ImagenCompresor();
 
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
+  final ImagenCompresor _compresor;
 
   CollectionReference<Map<String, dynamic>> get _fotos =>
       _firestore.collection('fotos');
 
-  /// Sube [archivo] a `fotos/{uid}/{id}.{jpg|png}` según su formato real y crea
-  /// su documento en "fotos".
+  /// Comprime [archivo] y lo guarda en base64, con su miniatura, dentro de un
+  /// documento nuevo de "fotos".
   Future<Foto> subirFoto({
     required File archivo,
     required String uid,
@@ -68,37 +47,33 @@ class PhotoService {
     required DateTime fechaToma,
     required PrivacidadFoto privacidad,
   }) async {
-    final formato = await _leerFormato(archivo);
+    final imagenes = await _comprimir(archivo);
     final documento = _fotos.doc();
-    final rutaStorage = 'fotos/$uid/${documento.id}.${formato.extension}';
-    final referencia = _storage.ref(rutaStorage);
 
-    try {
-      await referencia.putFile(
-        archivo,
-        SettableMetadata(contentType: formato.contentType),
+    final foto = Foto(
+      id: documento.id,
+      uid: uid,
+      imagenBase64: base64Encode(imagenes.imagen),
+      miniaturaBase64: base64Encode(imagenes.miniatura),
+      titulo: titulo,
+      descripcion: descripcion,
+      categoria: categoria,
+      latitud: latitud,
+      longitud: longitud,
+      nombreLugar: nombreLugar,
+      fechaToma: fechaToma,
+      fechaSubida: DateTime.now(),
+      privacidad: privacidad,
+    );
+
+    if (_tamanoAproximado(foto) > maxBytesDocumento) {
+      throw const PhotoException(
+        'La descripción es demasiado larga para esta foto. Acórtala e intenta '
+        'de nuevo.',
       );
-    } on FirebaseException catch (e) {
-      throw PhotoException(_mapError(e));
     }
 
     try {
-      final foto = Foto(
-        id: documento.id,
-        uid: uid,
-        urlImagen: await referencia.getDownloadURL(),
-        rutaStorage: rutaStorage,
-        titulo: titulo,
-        descripcion: descripcion,
-        categoria: categoria,
-        latitud: latitud,
-        longitud: longitud,
-        nombreLugar: nombreLugar,
-        fechaToma: fechaToma,
-        fechaSubida: DateTime.now(),
-        privacidad: privacidad,
-      );
-
       await documento.set({
         ...foto.toMap(),
         // La hora del servidor evita que el reloj del teléfono altere el orden.
@@ -106,8 +81,6 @@ class PhotoService {
       });
       return foto;
     } on FirebaseException catch (e) {
-      // Sin documento nadie podría encontrar ni borrar el archivo ya subido.
-      await referencia.delete().catchError((_) {});
       throw PhotoException(_mapError(e));
     }
   }
@@ -136,40 +109,36 @@ class PhotoService {
     }
   }
 
-  /// Borra primero el archivo y tolera que ya no exista, de modo que si falla
-  /// el borrado del documento se pueda reintentar la operación completa.
   Future<void> eliminarFoto(Foto foto) async {
     try {
-      if (foto.rutaStorage.isNotEmpty) {
-        await _eliminarArchivo(foto.rutaStorage);
-      }
       await _fotos.doc(foto.id).delete();
     } on FirebaseException catch (e) {
       throw PhotoException(_mapError(e));
     }
   }
 
-  Future<FormatoImagen> _leerFormato(File archivo) async {
-    final List<int> cabecera;
+  Future<ImagenesComprimidas> _comprimir(File archivo) async {
+    final Uint8List bytes;
     try {
-      cabecera = await archivo.openRead(0, 4).expand((b) => b).toList();
+      bytes = await archivo.readAsBytes();
     } on FileSystemException {
       throw const PhotoException('No se pudo leer la imagen.');
     }
 
-    final formato = FormatoImagen.detectar(cabecera);
-    if (formato == null) {
-      throw const PhotoException('Formato no soportado. Usa una imagen JPG o PNG.');
+    try {
+      return await _compresor.comprimir(bytes);
+    } on ImagenNoValidaException catch (e) {
+      throw PhotoException(e.message);
     }
-    return formato;
   }
 
-  Future<void> _eliminarArchivo(String rutaStorage) async {
-    try {
-      await _storage.ref(rutaStorage).delete();
-    } on FirebaseException catch (e) {
-      if (e.code != 'object-not-found') rethrow;
-    }
+  int _tamanoAproximado(Foto foto) {
+    return foto.imagenBase64.length +
+        foto.miniaturaBase64.length +
+        utf8.encode(foto.titulo).length +
+        utf8.encode(foto.descripcion).length +
+        utf8.encode(foto.nombreLugar).length +
+        _margenCamposBytes;
   }
 
   Stream<List<Foto>> _escuchar(Query<Map<String, dynamic>> consulta) {
@@ -188,17 +157,14 @@ class PhotoService {
   String _mapError(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':
-      case 'unauthorized':
       case 'unauthenticated':
         return 'No tienes permiso para realizar esta acción.';
       case 'not-found':
-      case 'object-not-found':
         return 'La foto ya no existe.';
       case 'unavailable':
-      case 'retry-limit-exceeded':
         return 'Sin conexión con el servidor. Intenta de nuevo.';
-      case 'quota-exceeded':
-        return 'Se superó el límite de almacenamiento.';
+      case 'resource-exhausted':
+        return 'Se superó el límite gratuito de Firebase por hoy.';
       case 'canceled':
         return 'La operación fue cancelada.';
       case 'failed-precondition':

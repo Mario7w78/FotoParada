@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:fotoparada/routes/app_routes.dart';
 import 'package:fotoparada/services/photo_service.dart';
 import 'package:fotoparada/view/edit_photo_view.dart';
 import 'package:fotoparada/view/my_photos_view.dart';
+import 'package:fotoparada/view/widgets/foto_widgets.dart';
 import 'package:fotoparada/viewmodel/edit_photo_viewmodel.dart';
 import 'package:fotoparada/viewmodel/my_photos_viewmodel.dart';
 
@@ -71,6 +73,18 @@ void main() {
 
     testWidgets('muestra los datos de la foto', (tester) async {
       await abrir(tester);
+
+      final imagen = tester.widget<Image>(
+        find.descendant(
+          of: find.byType(ImagenFoto),
+          matching: find.byType(Image),
+        ),
+      );
+      expect(imagen.image, isA<MemoryImage>());
+      expect(
+        (imagen.image as MemoryImage).bytes,
+        base64Decode(imagenPruebaBase64),
+      );
 
       expect(find.text('Atardecer'), findsOneWidget);
       expect(find.text('En la playa'), findsOneWidget);
@@ -279,6 +293,29 @@ void main() {
         find.descendant(of: grilla, matching: find.byIcon(Icons.group)),
         findsOneWidget,
       );
+    });
+
+    testWidgets('la grilla usa la miniatura, no la imagen completa',
+        (tester) async {
+      await abrir(tester);
+      final foto = crearFoto(id: 'a').copyWith(imagenBase64: 'no se usa');
+      await emitir(tester, [foto]);
+
+      final imagen = tester.widget<Image>(find.byType(Image));
+      expect(
+        (imagen.image as MemoryImage).bytes,
+        base64Decode(imagenPruebaBase64),
+      );
+    });
+
+    testWidgets('una imagen dañada muestra el ícono de error', (tester) async {
+      await abrir(tester);
+      await emitir(tester, [
+        crearFoto(id: 'a').copyWith(miniaturaBase64: 'no es base64!'),
+        crearFoto(id: 'b').copyWith(miniaturaBase64: ''),
+      ]);
+
+      expect(find.byIcon(Icons.broken_image), findsNWidgets(2));
     });
 
     testWidgets('los chips filtran y avisan si no hay resultados',

@@ -200,7 +200,7 @@ class _MyPhotosViewState extends State<MyPhotosView> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ImagenFotoRed(url: foto.urlImagen, anchoEnCache: 360),
+          ImagenFoto(base64: foto.miniaturaBase64),
           Positioned(
             top: 4,
             right: 4,

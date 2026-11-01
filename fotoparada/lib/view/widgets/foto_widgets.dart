@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/foto_model.dart';
@@ -24,36 +27,61 @@ String etiquetaPrivacidad(PrivacidadFoto privacidad) {
   }
 }
 
-/// Imagen de una foto guardada, con indicador de carga y manejo de error.
-class ImagenFotoRed extends StatelessWidget {
-  const ImagenFotoRed({super.key, required this.url, this.anchoEnCache});
+/// Muestra una imagen guardada en base64, con manejo de error.
+class ImagenFoto extends StatefulWidget {
+  const ImagenFoto({super.key, required this.base64});
 
-  final String url;
+  final String base64;
 
-  /// Ancho al que se decodifica: evita cargar en memoria la imagen completa
-  /// cuando solo se muestra una miniatura.
-  final int? anchoEnCache;
+  @override
+  State<ImagenFoto> createState() => _ImagenFotoState();
+}
+
+class _ImagenFotoState extends State<ImagenFoto> {
+  // Se conserva entre redibujados: decodificar en cada build sería costoso y
+  // haría parpadear la imagen, porque cada lista de bytes parece una nueva.
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = _decodificar(widget.base64);
+  }
+
+  @override
+  void didUpdateWidget(ImagenFoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.base64 != oldWidget.base64) {
+      _bytes = _decodificar(widget.base64);
+    }
+  }
+
+  Uint8List? _decodificar(String texto) {
+    if (texto.isEmpty) return null;
+    try {
+      return base64Decode(texto);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Widget _construirError() {
+    return const ColoredBox(
+      color: Colors.white,
+      child: Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    final bytes = _bytes;
+    if (bytes == null) return _construirError();
+
+    return Image.memory(
+      bytes,
       fit: BoxFit.cover,
-      cacheWidth: anchoEnCache,
-      loadingBuilder: (context, child, progreso) {
-        if (progreso == null) return child;
-        return const Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => const ColoredBox(
-        color: Colors.white,
-        child: Center(child: Icon(Icons.broken_image, color: Colors.grey)),
-      ),
+      gaplessPlayback: true,
+      errorBuilder: (context, error, stackTrace) => _construirError(),
     );
   }
 }

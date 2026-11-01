@@ -5,6 +5,10 @@ import 'package:fotoparada/services/auth_service.dart';
 import 'package:fotoparada/services/geocoding_service.dart';
 import 'package:fotoparada/services/photo_service.dart';
 
+/// PNG válido de 1x1 píxel.
+const String imagenPruebaBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==';
+
 Foto crearFoto({
   String id = 'abc',
   String titulo = 'Atardecer',
@@ -15,8 +19,8 @@ Foto crearFoto({
   return Foto(
     id: id,
     uid: 'usuario1',
-    urlImagen: 'https://example.com/$id.jpg',
-    rutaStorage: 'fotos/usuario1/$id.jpg',
+    imagenBase64: imagenPruebaBase64,
+    miniaturaBase64: imagenPruebaBase64,
     titulo: titulo,
     descripcion: descripcion,
     categoria: CategoriaFoto.naturaleza,

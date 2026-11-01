@@ -21,12 +21,28 @@ void main() {
     });
   });
 
+  group('Foto.externa', () {
+    test('conserva la URL y no lleva imagen en base64', () {
+      final foto = Foto.externa(
+        id: '1',
+        urlImagen: 'https://example.com/foto.jpg',
+        titulo: 'Externa',
+        latitud: 0,
+        longitud: 0,
+      );
+
+      expect(foto.urlImagen, 'https://example.com/foto.jpg');
+      expect(foto.imagenBase64, isEmpty);
+      expect(foto.miniaturaBase64, isEmpty);
+    });
+  });
+
   group('Foto en Firestore', () {
     final fotoCompleta = Foto(
       id: 'abc',
       uid: 'usuario1',
-      urlImagen: 'https://example.com/foto.jpg',
-      rutaStorage: 'fotos/usuario1/abc.jpg',
+      imagenBase64: 'aW1hZ2Vu',
+      miniaturaBase64: 'bWluaQ==',
       titulo: 'Atardecer',
       descripcion: 'En la playa',
       categoria: CategoriaFoto.naturaleza,
@@ -44,8 +60,8 @@ void main() {
 
       expect(foto.id, 'abc');
       expect(foto.uid, 'usuario1');
-      expect(foto.urlImagen, 'https://example.com/foto.jpg');
-      expect(foto.rutaStorage, 'fotos/usuario1/abc.jpg');
+      expect(foto.imagenBase64, 'aW1hZ2Vu');
+      expect(foto.miniaturaBase64, 'bWluaQ==');
       expect(foto.titulo, 'Atardecer');
       expect(foto.descripcion, 'En la playa');
       expect(foto.categoria, CategoriaFoto.naturaleza);
@@ -65,6 +81,8 @@ void main() {
       final mapa = fotoCompleta.toMap();
 
       expect(mapa.containsKey('id'), isFalse);
+      expect(mapa.containsKey('urlImagen'), isFalse);
+      expect(mapa.containsKey('rutaStorage'), isFalse);
       expect(mapa['categoria'], 'naturaleza');
       expect(mapa['privacidad'], 'amigos');
       expect(mapa['fechaToma'], isA<Timestamp>());
@@ -94,7 +112,7 @@ void main() {
         // Estos no son editables y nunca deben enviarse.
         likes: 99,
         uid: 'otro',
-        rutaStorage: 'otra/ruta.jpg',
+        imagenBase64: 'b3RyYQ==',
       );
 
       expect(cambiada.camposCambiados(fotoCompleta), {
