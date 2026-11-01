@@ -41,4 +41,30 @@ class GeocodingService {
       throw Exception('Error en la geocodificación (${response.statusCode})');
     }
   }
+
+  /// Devuelve el nombre del lugar en esas coordenadas, o null si no tiene.
+  Future<String?> reverse(double latitude, double longitude) async {
+    if (_apiKey.isEmpty) {
+      throw Exception(
+        'Falta GEOCODE_API_KEY. Ejecuta con --dart-define=GEOCODE_API_KEY=...',
+      );
+    }
+
+    final uri = Uri.https('geocode.maps.co', '/reverse', {
+      'lat': latitude.toString(),
+      'lon': longitude.toString(),
+      'api_key': _apiKey,
+    });
+
+    final response = await http
+        .get(uri, headers: {'User-Agent': 'FotoParada/1.0 '})
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw Exception('Error en la geocodificación (${response.statusCode})');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['display_name'] as String?;
+  }
 }

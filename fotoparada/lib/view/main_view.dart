@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../routes/app_routes.dart';
 import 'collections_view.dart';
 import 'feed_view.dart';
 import 'Map/map_home_view.dart';
@@ -38,11 +39,7 @@ class _MainViewState extends State<MainView> {
       // IndexedStack mantiene vivas todas las pestañas al cambiar entre ellas.
       body: IndexedStack(index: _currentIndex, children: _views),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Abriendo cámara para hacer Check-in...')),
-          );
-        },
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.upload),
         backgroundColor: Colors.blue,
         shape: const CircleBorder(),
         elevation: 4,

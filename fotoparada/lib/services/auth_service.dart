@@ -16,6 +16,8 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  String? get uid => _auth.currentUser?.uid;
+
   String get displayName => _auth.currentUser?.displayName ?? '';
 
   Future<void> signIn({required String email, required String password}) async {

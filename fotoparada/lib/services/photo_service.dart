@@ -14,6 +14,35 @@ class PhotoException implements Exception {
   String toString() => message;
 }
 
+enum FormatoImagen {
+  jpg('jpg', 'image/jpeg'),
+  png('png', 'image/png');
+
+  const FormatoImagen(this.extension, this.contentType);
+
+  final String extension;
+  final String contentType;
+
+  /// Se basa en los primeros bytes porque la extensión no es fiable:
+  /// image_picker conserva el nombre original aunque convierta la imagen.
+  static FormatoImagen? detectar(List<int> cabecera) {
+    if (cabecera.length >= 3 &&
+        cabecera[0] == 0xFF &&
+        cabecera[1] == 0xD8 &&
+        cabecera[2] == 0xFF) {
+      return FormatoImagen.jpg;
+    }
+    if (cabecera.length >= 4 &&
+        cabecera[0] == 0x89 &&
+        cabecera[1] == 0x50 &&
+        cabecera[2] == 0x4E &&
+        cabecera[3] == 0x47) {
+      return FormatoImagen.png;
+    }
+    return null;
+  }
+}
+
 class PhotoService {
   PhotoService({FirebaseFirestore? firestore, FirebaseStorage? storage})
       : _firestore = firestore ?? FirebaseFirestore.instance,
@@ -25,7 +54,8 @@ class PhotoService {
   CollectionReference<Map<String, dynamic>> get _fotos =>
       _firestore.collection('fotos');
 
-  /// Sube [archivo] a `fotos/{uid}/{id}.jpg` y crea su documento en "fotos".
+  /// Sube [archivo] a `fotos/{uid}/{id}.{jpg|png}` según su formato real y crea
+  /// su documento en "fotos".
   Future<Foto> subirFoto({
     required File archivo,
     required String uid,
@@ -38,14 +68,15 @@ class PhotoService {
     required DateTime fechaToma,
     required PrivacidadFoto privacidad,
   }) async {
+    final formato = await _leerFormato(archivo);
     final documento = _fotos.doc();
-    final rutaStorage = 'fotos/$uid/${documento.id}.jpg';
+    final rutaStorage = 'fotos/$uid/${documento.id}.${formato.extension}';
     final referencia = _storage.ref(rutaStorage);
 
     try {
       await referencia.putFile(
         archivo,
-        SettableMetadata(contentType: 'image/jpeg'),
+        SettableMetadata(contentType: formato.contentType),
       );
     } on FirebaseException catch (e) {
       throw PhotoException(_mapError(e));
@@ -123,6 +154,21 @@ class PhotoService {
     } on FirebaseException catch (e) {
       throw PhotoException(_mapError(e));
     }
+  }
+
+  Future<FormatoImagen> _leerFormato(File archivo) async {
+    final List<int> cabecera;
+    try {
+      cabecera = await archivo.openRead(0, 4).expand((b) => b).toList();
+    } on FileSystemException {
+      throw const PhotoException('No se pudo leer la imagen.');
+    }
+
+    final formato = FormatoImagen.detectar(cabecera);
+    if (formato == null) {
+      throw const PhotoException('Formato no soportado. Usa una imagen JPG o PNG.');
+    }
+    return formato;
   }
 
   Future<void> _eliminarArchivo(String rutaStorage) async {
