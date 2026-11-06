@@ -8,9 +8,18 @@ class Foto {
   final String id;
   final String uid;
 
-  /// Solo la usan las fotos externas (ver [Foto.externa]): las guardadas en
-  /// Firestore llevan la imagen en [imagenBase64] y [miniaturaBase64].
+  /// Imagen completa alojada en ImgBB, o la de una foto externa (ver
+  /// [Foto.externa]).
   final String urlImagen;
+
+  /// Miniatura que genera ImgBB. Vacía en las fotos externas.
+  final String urlMiniatura;
+
+  /// Página de ImgBB para borrar la imagen a mano: su API no permite borrarla.
+  final String urlEliminar;
+
+  /// Solo los documentos antiguos, anteriores a ImgBB, guardaban la imagen en
+  /// base64. Se leen como respaldo y ya no se escriben.
   final String imagenBase64;
   final String miniaturaBase64;
   final String titulo;
@@ -28,6 +37,8 @@ class Foto {
     required this.id,
     required this.uid,
     this.urlImagen = '',
+    this.urlMiniatura = '',
+    this.urlEliminar = '',
     this.imagenBase64 = '',
     this.miniaturaBase64 = '',
     required this.titulo,
@@ -86,6 +97,9 @@ class Foto {
     return Foto(
       id: id,
       uid: data['uid'] as String? ?? '',
+      urlImagen: data['urlImagen'] as String? ?? '',
+      urlMiniatura: data['urlMiniatura'] as String? ?? '',
+      urlEliminar: data['urlEliminar'] as String? ?? '',
       imagenBase64: data['imagenBase64'] as String? ?? '',
       miniaturaBase64: data['miniaturaBase64'] as String? ?? '',
       titulo: data['titulo'] as String? ?? '',
@@ -111,8 +125,9 @@ class Foto {
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
-      'imagenBase64': imagenBase64,
-      'miniaturaBase64': miniaturaBase64,
+      'urlImagen': urlImagen,
+      'urlMiniatura': urlMiniatura,
+      'urlEliminar': urlEliminar,
       'titulo': titulo,
       'descripcion': descripcion,
       'categoria': categoria.name,
@@ -146,6 +161,8 @@ class Foto {
     String? id,
     String? uid,
     String? urlImagen,
+    String? urlMiniatura,
+    String? urlEliminar,
     String? imagenBase64,
     String? miniaturaBase64,
     String? titulo,
@@ -163,6 +180,8 @@ class Foto {
       id: id ?? this.id,
       uid: uid ?? this.uid,
       urlImagen: urlImagen ?? this.urlImagen,
+      urlMiniatura: urlMiniatura ?? this.urlMiniatura,
+      urlEliminar: urlEliminar ?? this.urlEliminar,
       imagenBase64: imagenBase64 ?? this.imagenBase64,
       miniaturaBase64: miniaturaBase64 ?? this.miniaturaBase64,
       titulo: titulo ?? this.titulo,

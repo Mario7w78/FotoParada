@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/foto_model.dart';
 import 'imagen_compresor.dart';
+import 'imgbb_service.dart';
 
 class PhotoException implements Exception {
   const PhotoException(this.message);
@@ -16,25 +16,24 @@ class PhotoException implements Exception {
   String toString() => message;
 }
 
-/// Límite de Firestore para un documento.
-const int maxBytesDocumento = 1024 * 1024;
-
-// Holgura para los nombres de los campos y los valores de tamaño fijo.
-const int _margenCamposBytes = 2 * 1024;
-
 class PhotoService {
-  PhotoService({FirebaseFirestore? firestore, ImagenCompresor? compresor})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _compresor = compresor ?? ImagenCompresor();
+  PhotoService({
+    FirebaseFirestore? firestore,
+    ImagenCompresor? compresor,
+    ImgbbService? imgbb,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _compresor = compresor ?? ImagenCompresor(),
+        _imgbb = imgbb ?? ImgbbService();
 
   final FirebaseFirestore _firestore;
   final ImagenCompresor _compresor;
+  final ImgbbService _imgbb;
 
   CollectionReference<Map<String, dynamic>> get _fotos =>
       _firestore.collection('fotos');
 
-  /// Comprime [archivo] y lo guarda en base64, con su miniatura, dentro de un
-  /// documento nuevo de "fotos".
+  /// Comprime [archivo], lo sube a ImgBB y guarda sus URLs en un documento
+  /// nuevo de "fotos". Si la subida falla no se crea el documento.
   Future<Foto> subirFoto({
     required File archivo,
     required String uid,
@@ -47,14 +46,21 @@ class PhotoService {
     required DateTime fechaToma,
     required PrivacidadFoto privacidad,
   }) async {
-    final imagenes = await _comprimir(archivo);
+    // Antes de comprimir, para no hacer esperar en vano si falta la clave.
+    if (!_imgbb.tieneClave) {
+      throw const PhotoException(mensajeFaltaClaveImgbb);
+    }
+
+    final bytes = await _comprimir(archivo);
+    final subida = await _imgbb.subirImagen(bytes);
     final documento = _fotos.doc();
 
     final foto = Foto(
       id: documento.id,
       uid: uid,
-      imagenBase64: base64Encode(imagenes.imagen),
-      miniaturaBase64: base64Encode(imagenes.miniatura),
+      urlImagen: subida.url,
+      urlMiniatura: subida.urlMiniatura,
+      urlEliminar: subida.urlEliminar,
       titulo: titulo,
       descripcion: descripcion,
       categoria: categoria,
@@ -65,13 +71,6 @@ class PhotoService {
       fechaSubida: DateTime.now(),
       privacidad: privacidad,
     );
-
-    if (_tamanoAproximado(foto) > maxBytesDocumento) {
-      throw const PhotoException(
-        'La descripción es demasiado larga para esta foto. Acórtala e intenta '
-        'de nuevo.',
-      );
-    }
 
     try {
       await documento.set({
@@ -109,6 +108,8 @@ class PhotoService {
     }
   }
 
+  /// Borra solo el documento. La imagen sigue en ImgBB, que no permite
+  /// borrarla por API: se puede quitar a mano desde [Foto.urlEliminar].
   Future<void> eliminarFoto(Foto foto) async {
     try {
       await _fotos.doc(foto.id).delete();
@@ -117,7 +118,7 @@ class PhotoService {
     }
   }
 
-  Future<ImagenesComprimidas> _comprimir(File archivo) async {
+  Future<Uint8List> _comprimir(File archivo) async {
     final Uint8List bytes;
     try {
       bytes = await archivo.readAsBytes();
@@ -130,15 +131,6 @@ class PhotoService {
     } on ImagenNoValidaException catch (e) {
       throw PhotoException(e.message);
     }
-  }
-
-  int _tamanoAproximado(Foto foto) {
-    return foto.imagenBase64.length +
-        foto.miniaturaBase64.length +
-        utf8.encode(foto.titulo).length +
-        utf8.encode(foto.descripcion).length +
-        utf8.encode(foto.nombreLugar).length +
-        _margenCamposBytes;
   }
 
   Stream<List<Foto>> _escuchar(Query<Map<String, dynamic>> consulta) {

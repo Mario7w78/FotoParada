@@ -27,10 +27,12 @@ String etiquetaPrivacidad(PrivacidadFoto privacidad) {
   }
 }
 
-/// Muestra una imagen guardada en base64, con manejo de error.
+/// Muestra la imagen de [url] o, si no hay URL (documentos antiguos), la
+/// guardada en [base64]. Ante cualquier fallo muestra un ícono de error.
 class ImagenFoto extends StatefulWidget {
-  const ImagenFoto({super.key, required this.base64});
+  const ImagenFoto({super.key, this.url = '', this.base64 = ''});
 
+  final String url;
   final String base64;
 
   @override
@@ -74,6 +76,22 @@ class _ImagenFotoState extends State<ImagenFoto> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.url.isNotEmpty) {
+      return Image.network(
+        widget.url,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        loadingBuilder: (context, child, progreso) {
+          if (progreso == null) return child;
+          return const ColoredBox(
+            color: Colors.white,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _construirError(),
+      );
+    }
+
     final bytes = _bytes;
     if (bytes == null) return _construirError();
 

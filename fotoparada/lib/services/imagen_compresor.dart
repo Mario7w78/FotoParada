@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
-/// Tamaños máximos pensados para que imagen, miniatura y textos quepan en un
-/// documento de Firestore (1 MiB): base64 aumenta los datos en un tercio.
-const int maxBytesImagen = 700 * 1000;
-const int maxBytesMiniatura = 60 * 1000;
+/// Tope de la imagen que se sube a ImgBB (admite hasta 32 MB). Se comprime
+/// igual para que suba rápido y gaste menos datos.
+const int maxBytesImagen = 5 * 1000 * 1000;
 
 class ImagenNoValidaException implements Exception {
   const ImagenNoValidaException(this.message);
@@ -15,17 +14,10 @@ class ImagenNoValidaException implements Exception {
   String toString() => message;
 }
 
-class ImagenesComprimidas {
-  const ImagenesComprimidas({required this.imagen, required this.miniatura});
-
-  final Uint8List imagen;
-  final Uint8List miniatura;
-}
-
 class ImagenCompresor {
   /// Se ejecuta en otro isolate porque decodificar una foto bloquearía la
   /// pantalla durante más de un segundo.
-  Future<ImagenesComprimidas> comprimir(Uint8List bytes) =>
+  Future<Uint8List> comprimir(Uint8List bytes) =>
       compute(comprimirImagen, bytes);
 }
 
@@ -34,34 +26,16 @@ typedef _Paso = ({int ancho, int calidad});
 // Se prueban en orden hasta cumplir el límite: primero se sacrifica calidad y,
 // si no basta, tamaño.
 const List<_Paso> _pasosImagen = [
-  (ancho: 1080, calidad: 70),
-  (ancho: 1080, calidad: 60),
-  (ancho: 1080, calidad: 50),
-  (ancho: 1080, calidad: 40),
-  (ancho: 960, calidad: 40),
-  (ancho: 800, calidad: 40),
-  (ancho: 640, calidad: 40),
-  (ancho: 480, calidad: 30),
-  (ancho: 320, calidad: 30),
+  (ancho: 1920, calidad: 85),
+  (ancho: 1920, calidad: 75),
+  (ancho: 1600, calidad: 75),
+  (ancho: 1280, calidad: 70),
 ];
 
-const List<_Paso> _pasosMiniatura = [
-  (ancho: 300, calidad: 60),
-  (ancho: 300, calidad: 40),
-  (ancho: 200, calidad: 40),
-  (ancho: 120, calidad: 30),
-];
-
-ImagenesComprimidas comprimirImagen(Uint8List bytes) {
-  final original = _decodificar(bytes);
-  return ImagenesComprimidas(
-    imagen: _comprimirConLimite(original, _pasosImagen, maxBytesImagen),
-    miniatura: _comprimirConLimite(
-      original,
-      _pasosMiniatura,
-      maxBytesMiniatura,
-    ),
-  );
+/// Devuelve la imagen en JPEG, sin metadatos y dentro de [maxBytesImagen]. La
+/// miniatura no se genera aquí: la crea ImgBB.
+Uint8List comprimirImagen(Uint8List bytes) {
+  return _comprimirConLimite(_decodificar(bytes), _pasosImagen, maxBytesImagen);
 }
 
 img.Image _decodificar(Uint8List bytes) {

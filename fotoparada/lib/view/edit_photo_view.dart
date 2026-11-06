@@ -124,7 +124,10 @@ class _EditPhotoViewState extends State<EditPhotoView> {
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
                     height: 300,
-                    child: ImagenFoto(base64: widget.foto.imagenBase64),
+                    child: ImagenFoto(
+                      url: widget.foto.urlImagen,
+                      base64: widget.foto.imagenBase64,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

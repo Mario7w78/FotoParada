@@ -28,52 +28,38 @@ bool esJpeg(Uint8List bytes) =>
     bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
 
 void main() {
-  test('reduce a 1080 px de ancho y a 300 px la miniatura', () {
-    final resultado = comprimirImagen(
-      img.encodeJpg(crearLisa(2000, 1500)),
-    );
+  test('reduce a 1920 px de ancho y devuelve JPEG', () {
+    final resultado = comprimirImagen(img.encodeJpg(crearLisa(3000, 2000)));
 
-    final imagen = img.decodeJpg(resultado.imagen)!;
-    final miniatura = img.decodeJpg(resultado.miniatura)!;
-    expect(imagen.width, 1080);
-    expect(imagen.height, 810);
-    expect(miniatura.width, 300);
-    expect(esJpeg(resultado.imagen), isTrue);
-    expect(esJpeg(resultado.miniatura), isTrue);
+    final imagen = img.decodeJpg(resultado)!;
+    expect(imagen.width, 1920);
+    expect(imagen.height, 1280);
+    expect(esJpeg(resultado), isTrue);
   });
 
   test('no agranda una imagen más pequeña que el máximo', () {
     final resultado = comprimirImagen(img.encodeJpg(crearLisa(200, 100)));
 
-    expect(img.decodeJpg(resultado.imagen)!.width, 200);
-    expect(img.decodeJpg(resultado.miniatura)!.width, 200);
+    expect(img.decodeJpg(resultado)!.width, 200);
   });
 
-  test('cumple los límites incluso con el peor caso', () {
+  test('cumple el límite incluso con el peor caso', () {
     final resultado = comprimirImagen(
-      img.encodeJpg(crearRuido(1920, 1440), quality: 100),
+      img.encodeJpg(crearRuido(2400, 1800), quality: 100),
     );
 
-    expect(resultado.imagen.length, lessThanOrEqualTo(maxBytesImagen));
-    expect(resultado.miniatura.length, lessThanOrEqualTo(maxBytesMiniatura));
-  });
-
-  test('imagen, miniatura y base64 caben en un documento de Firestore', () {
-    final limiteBase64 =
-        (maxBytesImagen + maxBytesMiniatura + 2) ~/ 3 * 4;
-
-    // Deja sitio para título, descripción y el resto de los campos.
-    expect(limiteBase64, lessThan(1024 * 1024 - 30 * 1024));
+    expect(resultado.length, lessThanOrEqualTo(maxBytesImagen));
+    expect(img.decodeJpg(resultado)!.width, lessThanOrEqualTo(1920));
   });
 
   test('aplica la rotación EXIF antes de medir el ancho', () {
-    final vertical = crearLisa(2000, 1500)..exif.imageIfd.orientation = 6;
+    final vertical = crearLisa(3000, 2000)..exif.imageIfd.orientation = 6;
 
     final resultado = comprimirImagen(img.encodeJpg(vertical));
 
-    final imagen = img.decodeJpg(resultado.imagen)!;
-    expect(imagen.width, 1080);
-    expect(imagen.height, 1440);
+    final imagen = img.decodeJpg(resultado)!;
+    expect(imagen.width, 1920);
+    expect(imagen.height, 2880);
   });
 
   test('no conserva los metadatos de la foto', () {
@@ -85,8 +71,7 @@ void main() {
 
     final resultado = comprimirImagen(img.encodeJpg(conGps));
 
-    expect(img.decodeJpg(resultado.imagen)!.exif.gpsIfd.isEmpty, isTrue);
-    expect(img.decodeJpg(resultado.miniatura)!.exif.gpsIfd.isEmpty, isTrue);
+    expect(img.decodeJpg(resultado)!.exif.gpsIfd.isEmpty, isTrue);
   });
 
   test('convierte PNG a JPEG poniendo blanco lo transparente', () {
@@ -94,8 +79,8 @@ void main() {
 
     final resultado = comprimirImagen(img.encodePng(transparente));
 
-    expect(esJpeg(resultado.imagen), isTrue);
-    final pixel = img.decodeJpg(resultado.imagen)!.getPixel(25, 25);
+    expect(esJpeg(resultado), isTrue);
+    final pixel = img.decodeJpg(resultado)!.getPixel(25, 25);
     expect(pixel.r, greaterThan(250));
     expect(pixel.g, greaterThan(250));
     expect(pixel.b, greaterThan(250));
@@ -114,9 +99,9 @@ void main() {
 
   test('el compresor funciona en otro isolate', () async {
     final resultado = await ImagenCompresor().comprimir(
-      img.encodeJpg(crearLisa(1200, 800)),
+      img.encodeJpg(crearLisa(2400, 1600)),
     );
 
-    expect(img.decodeJpg(resultado.imagen)!.width, 1080);
+    expect(img.decodeJpg(resultado)!.width, 1920);
   });
 }

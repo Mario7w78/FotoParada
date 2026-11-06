@@ -1,37 +1,50 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
-import 'package:fotoparada/services/imagen_compresor.dart';
+import 'package:fotoparada/services/imgbb_service.dart';
 import 'package:fotoparada/services/photo_service.dart';
 import 'package:image/image.dart' as img;
 
-class FakeCompresor implements ImagenCompresor {
-  FakeCompresor(this.resultado);
-
-  final ImagenesComprimidas resultado;
+class FakeImgbb implements ImgbbService {
+  final List<Uint8List> subidas = [];
+  Object? error;
 
   @override
-  Future<ImagenesComprimidas> comprimir(Uint8List bytes) async => resultado;
+  bool tieneClave = true;
+
+  @override
+  Future<ImagenSubida> subirImagen(Uint8List bytes) async {
+    subidas.add(bytes);
+    if (error != null) throw error!;
+    final n = subidas.length;
+    return ImagenSubida(
+      url: 'https://i.ibb.co/$n/foto.jpg',
+      urlMiniatura: 'https://i.ibb.co/$n/foto-mini.jpg',
+      urlEliminar: 'https://ibb.co/$n/borrar',
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
   late FakeFirebaseFirestore firestore;
+  late FakeImgbb imgbb;
   late PhotoService servicio;
   late Directory carpeta;
   late File archivo;
 
   Future<Foto> subir({
     String uid = 'usuario1',
-    PhotoService? con,
     PrivacidadFoto privacidad = PrivacidadFoto.publica,
     String descripcion = 'En la playa',
     File? imagen,
   }) {
-    return (con ?? servicio).subirFoto(
+    return servicio.subirFoto(
       archivo: imagen ?? archivo,
       uid: uid,
       titulo: 'Atardecer',
@@ -47,7 +60,8 @@ void main() {
 
   setUp(() async {
     firestore = FakeFirebaseFirestore();
-    servicio = PhotoService(firestore: firestore);
+    imgbb = FakeImgbb();
+    servicio = PhotoService(firestore: firestore, imgbb: imgbb);
     carpeta = await Directory.systemTemp.createTemp('fotos_test');
     archivo = File('${carpeta.path}/foto.jpg');
     final original = img.Image(width: 1500, height: 1000);
@@ -58,30 +72,67 @@ void main() {
   tearDown(() => carpeta.delete(recursive: true));
 
   group('subirFoto', () {
-    test('guarda imagen y miniatura en base64 dentro del documento', () async {
+    test('sube la imagen comprimida a ImgBB y guarda sus URLs', () async {
       final foto = await subir();
 
       final doc = await firestore.collection('fotos').doc(foto.id).get();
       final datos = doc.data()!;
 
-      final imagen = img.decodeJpg(base64Decode(datos['imagenBase64']))!;
-      final miniatura = img.decodeJpg(base64Decode(datos['miniaturaBase64']))!;
-      expect(imagen.width, 1080);
-      expect(miniatura.width, 300);
+      final subida = img.decodeJpg(imgbb.subidas.single)!;
+      expect(subida.width, 1500);
+      expect(datos['urlImagen'], 'https://i.ibb.co/1/foto.jpg');
+      expect(datos['urlMiniatura'], 'https://i.ibb.co/1/foto-mini.jpg');
+      expect(datos['urlEliminar'], 'https://ibb.co/1/borrar');
       expect(datos['uid'], 'usuario1');
       expect(datos['titulo'], 'Atardecer');
       expect(datos['privacidad'], 'publica');
       expect(datos['likes'], 0);
-      expect(datos.containsKey('urlImagen'), isFalse);
+      expect(datos.containsKey('imagenBase64'), isFalse);
+      expect(datos.containsKey('miniaturaBase64'), isFalse);
       expect(datos.containsKey('rutaStorage'), isFalse);
     });
 
-    test('devuelve la foto con su id e imágenes', () async {
+    test('devuelve la foto con su id y URLs', () async {
       final foto = await subir();
 
       expect(foto.id, isNotEmpty);
-      expect(foto.imagenBase64, isNotEmpty);
-      expect(foto.miniaturaBase64, isNotEmpty);
+      expect(foto.urlImagen, 'https://i.ibb.co/1/foto.jpg');
+      expect(foto.urlMiniatura, 'https://i.ibb.co/1/foto-mini.jpg');
+      expect(foto.urlEliminar, 'https://ibb.co/1/borrar');
+      expect(foto.imagenBase64, isEmpty);
+    });
+
+    test('si ImgBB falla no crea el documento', () async {
+      imgbb.error = const PhotoException('No se pudo subir la imagen: x');
+
+      await expectLater(
+        subir(),
+        throwsA(
+          isA<PhotoException>().having(
+            (e) => e.message,
+            'message',
+            'No se pudo subir la imagen: x',
+          ),
+        ),
+      );
+      expect((await firestore.collection('fotos').get()).docs, isEmpty);
+    });
+
+    test('sin clave de ImgBB avisa sin comprimir ni subir', () async {
+      imgbb.tieneClave = false;
+
+      await expectLater(
+        subir(),
+        throwsA(
+          isA<PhotoException>().having(
+            (e) => e.message,
+            'message',
+            'Falta IMGBB_API_KEY. Revisa claves.json',
+          ),
+        ),
+      );
+      expect(imgbb.subidas, isEmpty);
+      expect((await firestore.collection('fotos').get()).docs, isEmpty);
     });
 
     test('un archivo que no existe da un error claro', () async {
@@ -112,33 +163,7 @@ void main() {
         ),
       );
       expect((await firestore.collection('fotos').get()).docs, isEmpty);
-    });
-
-    test('rechaza lo que no cabría en un documento de Firestore', () async {
-      // Imagen en el límite: una descripción enorme rebasaría 1 MiB.
-      final compresor = FakeCompresor(
-        ImagenesComprimidas(
-          imagen: Uint8List(maxBytesImagen),
-          miniatura: Uint8List(maxBytesMiniatura),
-        ),
-      );
-      final limitado = PhotoService(firestore: firestore, compresor: compresor);
-
-      await expectLater(
-        subir(con: limitado, descripcion: 'x' * 100000),
-        throwsA(
-          isA<PhotoException>().having(
-            (e) => e.message,
-            'message',
-            contains('descripción'),
-          ),
-        ),
-      );
-      expect((await firestore.collection('fotos').get()).docs, isEmpty);
-
-      // Con una descripción normal, la misma imagen sí cabe.
-      await subir(con: limitado);
-      expect((await firestore.collection('fotos').get()).docs, hasLength(1));
+      expect(imgbb.subidas, isEmpty);
     });
   });
 
@@ -151,7 +176,7 @@ void main() {
 
       expect(fotos, hasLength(1));
       expect(fotos.single.uid, 'usuario1');
-      expect(fotos.single.miniaturaBase64, isNotEmpty);
+      expect(fotos.single.urlMiniatura, isNotEmpty);
     });
 
     test('obtenerFotosPublicas excluye amigos y privadas', () async {
@@ -175,13 +200,14 @@ void main() {
           (await firestore.collection('fotos').doc(foto.id).get()).data()!;
       expect(datos['titulo'], 'Otro');
       expect(datos['descripcion'], 'En la playa');
-      expect(datos['imagenBase64'], foto.imagenBase64);
-      expect(datos['miniaturaBase64'], foto.miniaturaBase64);
+      expect(datos['urlImagen'], foto.urlImagen);
+      expect(datos['urlMiniatura'], foto.urlMiniatura);
+      expect(datos['urlEliminar'], foto.urlEliminar);
     });
   });
 
   group('eliminarFoto', () {
-    test('borra el documento con su imagen', () async {
+    test('borra el documento sin intentar borrar en ImgBB', () async {
       final foto = await subir();
 
       await servicio.eliminarFoto(foto);

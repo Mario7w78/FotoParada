@@ -5,15 +5,13 @@ import 'package:http/http.dart' as http;
 import '../models/geocoding_result.dart';
 
 class GeocodingService {
-  // Se pasa al ejecutar: flutter run --dart-define=GEOCODE_API_KEY=tu_key
+  // Se pasa al ejecutar: flutter run --dart-define-from-file=claves.json
   static const String _apiKey = String.fromEnvironment('GEOCODE_API_KEY');
 
   Future<List<GeocodingResult>> search(String query) async {
     if (query.trim().isEmpty) return [];
     if (_apiKey.isEmpty) {
-      throw Exception(
-        'Falta GEOCODE_API_KEY. Ejecuta con --dart-define=GEOCODE_API_KEY=...',
-      );
+      throw Exception('Falta GEOCODE_API_KEY. Revisa claves.json');
     }
 
     final uri = Uri.https('geocode.maps.co', '/search', {
@@ -45,9 +43,7 @@ class GeocodingService {
   /// Devuelve el nombre del lugar en esas coordenadas, o null si no tiene.
   Future<String?> reverse(double latitude, double longitude) async {
     if (_apiKey.isEmpty) {
-      throw Exception(
-        'Falta GEOCODE_API_KEY. Ejecuta con --dart-define=GEOCODE_API_KEY=...',
-      );
+      throw Exception('Falta GEOCODE_API_KEY. Revisa claves.json');
     }
 
     final uri = Uri.https('geocode.maps.co', '/reverse', {

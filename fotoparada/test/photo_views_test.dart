@@ -31,10 +31,10 @@ void main() {
   group('EditPhotoView', () {
     late FakePhotoService servicio;
 
-    Future<void> abrir(WidgetTester tester) async {
+    Future<void> abrir(WidgetTester tester, {Foto? fotoInicial}) async {
       usarPantallaGrande(tester);
       servicio = FakePhotoService();
-      final foto = crearFoto();
+      final foto = fotoInicial ?? crearFoto();
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -80,16 +80,29 @@ void main() {
           matching: find.byType(Image),
         ),
       );
-      expect(imagen.image, isA<MemoryImage>());
-      expect(
-        (imagen.image as MemoryImage).bytes,
-        base64Decode(imagenPruebaBase64),
-      );
+      expect(imagen.image, isA<NetworkImage>());
+      expect((imagen.image as NetworkImage).url, urlImagenPrueba);
 
       expect(find.text('Atardecer'), findsOneWidget);
       expect(find.text('En la playa'), findsOneWidget);
       expect(find.text('Lima'), findsOneWidget);
       expect(find.text('Fecha de la foto: 02/01/2026 10:30'), findsOneWidget);
+    });
+
+    testWidgets('una foto antigua se muestra desde base64', (tester) async {
+      await abrir(tester, fotoInicial: crearFotoAntigua());
+
+      final imagen = tester.widget<Image>(
+        find.descendant(
+          of: find.byType(ImagenFoto),
+          matching: find.byType(Image),
+        ),
+      );
+      expect(imagen.image, isA<MemoryImage>());
+      expect(
+        (imagen.image as MemoryImage).bytes,
+        base64Decode(imagenPruebaBase64),
+      );
     });
 
     testWidgets('Guardar se habilita solo con cambios', (tester) async {
@@ -298,8 +311,17 @@ void main() {
     testWidgets('la grilla usa la miniatura, no la imagen completa',
         (tester) async {
       await abrir(tester);
-      final foto = crearFoto(id: 'a').copyWith(imagenBase64: 'no se usa');
-      await emitir(tester, [foto]);
+      await emitir(tester, [crearFoto(id: 'a')]);
+
+      final imagen = tester.widget<Image>(find.byType(Image));
+      expect((imagen.image as NetworkImage).url, urlMiniaturaPrueba);
+    });
+
+    testWidgets('una foto antigua usa la miniatura en base64', (tester) async {
+      await abrir(tester);
+      await emitir(tester, [
+        crearFotoAntigua(id: 'a').copyWith(imagenBase64: 'no se usa'),
+      ]);
 
       final imagen = tester.widget<Image>(find.byType(Image));
       expect(
@@ -311,8 +333,8 @@ void main() {
     testWidgets('una imagen dañada muestra el ícono de error', (tester) async {
       await abrir(tester);
       await emitir(tester, [
-        crearFoto(id: 'a').copyWith(miniaturaBase64: 'no es base64!'),
-        crearFoto(id: 'b').copyWith(miniaturaBase64: ''),
+        crearFotoAntigua(id: 'a').copyWith(miniaturaBase64: 'no es base64!'),
+        crearFotoAntigua(id: 'b').copyWith(miniaturaBase64: ''),
       ]);
 
       expect(find.byIcon(Icons.broken_image), findsNWidgets(2));

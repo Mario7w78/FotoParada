@@ -22,7 +22,7 @@ void main() {
   });
 
   group('Foto.externa', () {
-    test('conserva la URL y no lleva imagen en base64', () {
+    test('conserva la URL y no lleva miniatura ni imagen en base64', () {
       final foto = Foto.externa(
         id: '1',
         urlImagen: 'https://example.com/foto.jpg',
@@ -32,6 +32,8 @@ void main() {
       );
 
       expect(foto.urlImagen, 'https://example.com/foto.jpg');
+      expect(foto.urlMiniatura, isEmpty);
+      expect(foto.urlEliminar, isEmpty);
       expect(foto.imagenBase64, isEmpty);
       expect(foto.miniaturaBase64, isEmpty);
     });
@@ -41,8 +43,9 @@ void main() {
     final fotoCompleta = Foto(
       id: 'abc',
       uid: 'usuario1',
-      imagenBase64: 'aW1hZ2Vu',
-      miniaturaBase64: 'bWluaQ==',
+      urlImagen: 'https://i.ibb.co/abc/foto.jpg',
+      urlMiniatura: 'https://i.ibb.co/abc/foto-mini.jpg',
+      urlEliminar: 'https://ibb.co/abc/borrar',
       titulo: 'Atardecer',
       descripcion: 'En la playa',
       categoria: CategoriaFoto.naturaleza,
@@ -60,8 +63,9 @@ void main() {
 
       expect(foto.id, 'abc');
       expect(foto.uid, 'usuario1');
-      expect(foto.imagenBase64, 'aW1hZ2Vu');
-      expect(foto.miniaturaBase64, 'bWluaQ==');
+      expect(foto.urlImagen, 'https://i.ibb.co/abc/foto.jpg');
+      expect(foto.urlMiniatura, 'https://i.ibb.co/abc/foto-mini.jpg');
+      expect(foto.urlEliminar, 'https://ibb.co/abc/borrar');
       expect(foto.titulo, 'Atardecer');
       expect(foto.descripcion, 'En la playa');
       expect(foto.categoria, CategoriaFoto.naturaleza);
@@ -81,11 +85,37 @@ void main() {
       final mapa = fotoCompleta.toMap();
 
       expect(mapa.containsKey('id'), isFalse);
-      expect(mapa.containsKey('urlImagen'), isFalse);
       expect(mapa.containsKey('rutaStorage'), isFalse);
       expect(mapa['categoria'], 'naturaleza');
       expect(mapa['privacidad'], 'amigos');
       expect(mapa['fechaToma'], isA<Timestamp>());
+    });
+
+    test('toMap guarda las URLs y ya no guarda base64', () {
+      final mapa = fotoCompleta
+          .copyWith(imagenBase64: 'aW1hZ2Vu', miniaturaBase64: 'bWluaQ==')
+          .toMap();
+
+      expect(mapa['urlImagen'], 'https://i.ibb.co/abc/foto.jpg');
+      expect(mapa['urlMiniatura'], 'https://i.ibb.co/abc/foto-mini.jpg');
+      expect(mapa['urlEliminar'], 'https://ibb.co/abc/borrar');
+      expect(mapa.containsKey('imagenBase64'), isFalse);
+      expect(mapa.containsKey('miniaturaBase64'), isFalse);
+    });
+
+    test('lee los documentos antiguos que guardaban la imagen en base64', () {
+      final foto = Foto.fromMap('viejo', {
+        'uid': 'usuario1',
+        'imagenBase64': 'aW1hZ2Vu',
+        'miniaturaBase64': 'bWluaQ==',
+        'titulo': 'Antigua',
+      });
+
+      expect(foto.imagenBase64, 'aW1hZ2Vu');
+      expect(foto.miniaturaBase64, 'bWluaQ==');
+      expect(foto.urlImagen, isEmpty);
+      expect(foto.urlMiniatura, isEmpty);
+      expect(foto.urlEliminar, isEmpty);
     });
 
     test('una privacidad desconocida o ausente se trata como privada', () {
@@ -112,7 +142,9 @@ void main() {
         // Estos no son editables y nunca deben enviarse.
         likes: 99,
         uid: 'otro',
-        imagenBase64: 'b3RyYQ==',
+        urlImagen: 'https://i.ibb.co/otra.jpg',
+        urlMiniatura: 'https://i.ibb.co/otra-mini.jpg',
+        urlEliminar: 'https://ibb.co/otra/borrar',
       );
 
       expect(cambiada.camposCambiados(fotoCompleta), {
@@ -134,6 +166,17 @@ void main() {
       expect(copia.uid, fotoCompleta.uid);
       expect(copia.likes, fotoCompleta.likes);
       expect(copia.fechaToma, fotoCompleta.fechaToma);
+      expect(copia.urlImagen, fotoCompleta.urlImagen);
+      expect(copia.urlMiniatura, fotoCompleta.urlMiniatura);
+      expect(copia.urlEliminar, fotoCompleta.urlEliminar);
+
+      final otraImagen = fotoCompleta.copyWith(
+        urlMiniatura: 'https://i.ibb.co/otra-mini.jpg',
+        urlEliminar: 'https://ibb.co/otra/borrar',
+      );
+      expect(otraImagen.urlMiniatura, 'https://i.ibb.co/otra-mini.jpg');
+      expect(otraImagen.urlEliminar, 'https://ibb.co/otra/borrar');
+      expect(otraImagen.urlImagen, fotoCompleta.urlImagen);
     });
   });
 }
