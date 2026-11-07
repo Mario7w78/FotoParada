@@ -66,10 +66,7 @@ class _MyPhotosViewState extends State<MyPhotosView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis fotos'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Mis fotos'), centerTitle: true),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) => Column(
@@ -200,10 +197,7 @@ class _MyPhotosViewState extends State<MyPhotosView> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ImagenFoto(
-            url: foto.urlMiniatura,
-            base64: foto.miniaturaBase64,
-          ),
+          ImagenFoto(url: foto.urlMiniatura),
           Positioned(
             top: 4,
             right: 4,

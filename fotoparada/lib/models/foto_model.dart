@@ -17,11 +17,6 @@ class Foto {
 
   /// Página de ImgBB para borrar la imagen a mano: su API no permite borrarla.
   final String urlEliminar;
-
-  /// Solo los documentos antiguos, anteriores a ImgBB, guardaban la imagen en
-  /// base64. Se leen como respaldo y ya no se escriben.
-  final String imagenBase64;
-  final String miniaturaBase64;
   final String titulo;
   final String descripcion;
   final CategoriaFoto categoria;
@@ -39,8 +34,6 @@ class Foto {
     this.urlImagen = '',
     this.urlMiniatura = '',
     this.urlEliminar = '',
-    this.imagenBase64 = '',
-    this.miniaturaBase64 = '',
     required this.titulo,
     required this.descripcion,
     required this.categoria,
@@ -100,8 +93,6 @@ class Foto {
       urlImagen: data['urlImagen'] as String? ?? '',
       urlMiniatura: data['urlMiniatura'] as String? ?? '',
       urlEliminar: data['urlEliminar'] as String? ?? '',
-      imagenBase64: data['imagenBase64'] as String? ?? '',
-      miniaturaBase64: data['miniaturaBase64'] as String? ?? '',
       titulo: data['titulo'] as String? ?? '',
       descripcion: data['descripcion'] as String? ?? '',
       categoria: CategoriaFoto.values.asNameMap()[data['categoria']] ??
@@ -163,8 +154,6 @@ class Foto {
     String? urlImagen,
     String? urlMiniatura,
     String? urlEliminar,
-    String? imagenBase64,
-    String? miniaturaBase64,
     String? titulo,
     String? descripcion,
     CategoriaFoto? categoria,
@@ -182,8 +171,6 @@ class Foto {
       urlImagen: urlImagen ?? this.urlImagen,
       urlMiniatura: urlMiniatura ?? this.urlMiniatura,
       urlEliminar: urlEliminar ?? this.urlEliminar,
-      imagenBase64: imagenBase64 ?? this.imagenBase64,
-      miniaturaBase64: miniaturaBase64 ?? this.miniaturaBase64,
       titulo: titulo ?? this.titulo,
       descripcion: descripcion ?? this.descripcion,
       categoria: categoria ?? this.categoria,

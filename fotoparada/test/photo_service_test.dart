@@ -99,7 +99,6 @@ void main() {
       expect(foto.urlImagen, 'https://i.ibb.co/1/foto.jpg');
       expect(foto.urlMiniatura, 'https://i.ibb.co/1/foto-mini.jpg');
       expect(foto.urlEliminar, 'https://ibb.co/1/borrar');
-      expect(foto.imagenBase64, isEmpty);
     });
 
     test('si ImgBB falla no crea el documento', () async {

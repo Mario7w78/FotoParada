@@ -9,10 +9,6 @@ const String urlImagenPrueba = 'https://i.ibb.co/abc/foto.jpg';
 const String urlMiniaturaPrueba = 'https://i.ibb.co/abc/foto-mini.jpg';
 const String urlEliminarPrueba = 'https://ibb.co/abc/borrar';
 
-/// PNG válido de 1x1 píxel.
-const String imagenPruebaBase64 =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==';
-
 Foto crearFoto({
   String id = 'abc',
   String titulo = 'Atardecer',
@@ -36,17 +32,6 @@ Foto crearFoto({
     fechaSubida: DateTime.utc(2026, 1, 3),
     privacidad: privacidad,
     likes: 7,
-  );
-}
-
-/// Foto de un documento antiguo: la imagen va en base64 y no tiene URLs.
-Foto crearFotoAntigua({String id = 'abc'}) {
-  return crearFoto(id: id).copyWith(
-    urlImagen: '',
-    urlMiniatura: '',
-    urlEliminar: '',
-    imagenBase64: imagenPruebaBase64,
-    miniaturaBase64: imagenPruebaBase64,
   );
 }
 

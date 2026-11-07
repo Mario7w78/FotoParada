@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/foto_model.dart';
@@ -27,45 +24,12 @@ String etiquetaPrivacidad(PrivacidadFoto privacidad) {
   }
 }
 
-/// Muestra la imagen de [url] o, si no hay URL (documentos antiguos), la
-/// guardada en [base64]. Ante cualquier fallo muestra un ícono de error.
-class ImagenFoto extends StatefulWidget {
-  const ImagenFoto({super.key, this.url = '', this.base64 = ''});
+/// Muestra la imagen de [url]. Si no hay URL o falla la descarga, muestra un
+/// ícono de error.
+class ImagenFoto extends StatelessWidget {
+  const ImagenFoto({super.key, this.url = ''});
 
   final String url;
-  final String base64;
-
-  @override
-  State<ImagenFoto> createState() => _ImagenFotoState();
-}
-
-class _ImagenFotoState extends State<ImagenFoto> {
-  // Se conserva entre redibujados: decodificar en cada build sería costoso y
-  // haría parpadear la imagen, porque cada lista de bytes parece una nueva.
-  Uint8List? _bytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _bytes = _decodificar(widget.base64);
-  }
-
-  @override
-  void didUpdateWidget(ImagenFoto oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.base64 != oldWidget.base64) {
-      _bytes = _decodificar(widget.base64);
-    }
-  }
-
-  Uint8List? _decodificar(String texto) {
-    if (texto.isEmpty) return null;
-    try {
-      return base64Decode(texto);
-    } on FormatException {
-      return null;
-    }
-  }
 
   Widget _construirError() {
     return const ColoredBox(
@@ -76,29 +40,19 @@ class _ImagenFotoState extends State<ImagenFoto> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.url.isNotEmpty) {
-      return Image.network(
-        widget.url,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        loadingBuilder: (context, child, progreso) {
-          if (progreso == null) return child;
-          return const ColoredBox(
-            color: Colors.white,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => _construirError(),
-      );
-    }
+    if (url.isEmpty) return _construirError();
 
-    final bytes = _bytes;
-    if (bytes == null) return _construirError();
-
-    return Image.memory(
-      bytes,
+    return Image.network(
+      url,
       fit: BoxFit.cover,
       gaplessPlayback: true,
+      loadingBuilder: (context, child, progreso) {
+        if (progreso == null) return child;
+        return const ColoredBox(
+          color: Colors.white,
+          child: Center(child: CircularProgressIndicator()),
+        );
+      },
       errorBuilder: (context, error, stackTrace) => _construirError(),
     );
   }

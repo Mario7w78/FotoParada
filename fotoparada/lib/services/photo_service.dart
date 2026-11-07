@@ -90,9 +90,11 @@ class PhotoService {
     );
   }
 
-  Stream<List<Foto>> obtenerFotosPublicas() {
+  Stream<List<Foto>> obtenerFotosPublicas({int limite = 30}) {
     return _escuchar(
-      _fotos.where('privacidad', isEqualTo: PrivacidadFoto.publica.name),
+      _fotos
+          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
+          .limit(limite),
     );
   }
 
@@ -144,6 +146,30 @@ class PhotoService {
       }
       throw error;
     });
+
+  }
+
+  // Detalle 
+  Future<Foto?> obtenerPorId(String id) async {
+    try {
+      final doc = await _fotos.doc(id).get();
+      return doc.exists ? Foto.fromFirestore(doc) : null;
+    } on FirebaseException catch (e) {
+      throw PhotoException(_mapError(e));
+    }
+  }
+
+// Por categoría (reutiliza _escuchar)
+  Stream<List<Foto>> obtenerFotosPublicasPorCategoria(
+      CategoriaFoto categoria, {
+        int limite = 30,
+      }) {
+    return _escuchar(
+      _fotos
+          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
+          .where('categoria', isEqualTo: categoria.name)
+          .limit(limite),
+    );
   }
 
   String _mapError(FirebaseException e) {

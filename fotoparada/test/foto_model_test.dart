@@ -22,7 +22,7 @@ void main() {
   });
 
   group('Foto.externa', () {
-    test('conserva la URL y no lleva miniatura ni imagen en base64', () {
+    test('conserva la URL y no lleva miniatura', () {
       final foto = Foto.externa(
         id: '1',
         urlImagen: 'https://example.com/foto.jpg',
@@ -34,8 +34,6 @@ void main() {
       expect(foto.urlImagen, 'https://example.com/foto.jpg');
       expect(foto.urlMiniatura, isEmpty);
       expect(foto.urlEliminar, isEmpty);
-      expect(foto.imagenBase64, isEmpty);
-      expect(foto.miniaturaBase64, isEmpty);
     });
   });
 
@@ -92,9 +90,7 @@ void main() {
     });
 
     test('toMap guarda las URLs y ya no guarda base64', () {
-      final mapa = fotoCompleta
-          .copyWith(imagenBase64: 'aW1hZ2Vu', miniaturaBase64: 'bWluaQ==')
-          .toMap();
+      final mapa = fotoCompleta.toMap();
 
       expect(mapa['urlImagen'], 'https://i.ibb.co/abc/foto.jpg');
       expect(mapa['urlMiniatura'], 'https://i.ibb.co/abc/foto-mini.jpg');
@@ -103,7 +99,7 @@ void main() {
       expect(mapa.containsKey('miniaturaBase64'), isFalse);
     });
 
-    test('lee los documentos antiguos que guardaban la imagen en base64', () {
+    test('un documento antiguo sin URLs se lee con URLs vacías', () {
       final foto = Foto.fromMap('viejo', {
         'uid': 'usuario1',
         'imagenBase64': 'aW1hZ2Vu',
@@ -111,8 +107,6 @@ void main() {
         'titulo': 'Antigua',
       });
 
-      expect(foto.imagenBase64, 'aW1hZ2Vu');
-      expect(foto.miniaturaBase64, 'bWluaQ==');
       expect(foto.urlImagen, isEmpty);
       expect(foto.urlMiniatura, isEmpty);
       expect(foto.urlEliminar, isEmpty);

@@ -21,9 +21,12 @@ class EditPhotoView extends StatefulWidget {
 class _EditPhotoViewState extends State<EditPhotoView> {
   late final EditPhotoViewModel _viewModel =
       widget.viewModel ?? EditPhotoViewModel(foto: widget.foto);
-  late final _tituloController = TextEditingController(text: widget.foto.titulo);
-  late final _descripcionController =
-      TextEditingController(text: widget.foto.descripcion);
+  late final _tituloController = TextEditingController(
+    text: widget.foto.titulo,
+  );
+  late final _descripcionController = TextEditingController(
+    text: widget.foto.descripcion,
+  );
 
   // Mientras un dedo está sobre el mapa, el scroll de la pantalla se desactiva
   // para que el gesto mueva el mapa y no la página.
@@ -38,9 +41,8 @@ class _EditPhotoViewState extends State<EditPhotoView> {
   }
 
   void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   Future<void> _guardar() async {
@@ -109,13 +111,11 @@ class _EditPhotoViewState extends State<EditPhotoView> {
           if (!didPop) _confirmarSalida();
         },
         child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Editar foto'),
-            centerTitle: true,
-          ),
+          appBar: AppBar(title: const Text('Editar foto'), centerTitle: true),
           body: SingleChildScrollView(
-            physics:
-                _dedoSobreMapa ? const NeverScrollableScrollPhysics() : null,
+            physics: _dedoSobreMapa
+                ? const NeverScrollableScrollPhysics()
+                : null,
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,10 +124,7 @@ class _EditPhotoViewState extends State<EditPhotoView> {
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
                     height: 300,
-                    child: ImagenFoto(
-                      url: widget.foto.urlImagen,
-                      base64: widget.foto.imagenBase64,
-                    ),
+                    child: ImagenFoto(url: widget.foto.urlImagen),
                   ),
                 ),
                 const SizedBox(height: 24),

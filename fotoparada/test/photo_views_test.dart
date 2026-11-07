@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,22 +86,6 @@ void main() {
       expect(find.text('En la playa'), findsOneWidget);
       expect(find.text('Lima'), findsOneWidget);
       expect(find.text('Fecha de la foto: 02/01/2026 10:30'), findsOneWidget);
-    });
-
-    testWidgets('una foto antigua se muestra desde base64', (tester) async {
-      await abrir(tester, fotoInicial: crearFotoAntigua());
-
-      final imagen = tester.widget<Image>(
-        find.descendant(
-          of: find.byType(ImagenFoto),
-          matching: find.byType(Image),
-        ),
-      );
-      expect(imagen.image, isA<MemoryImage>());
-      expect(
-        (imagen.image as MemoryImage).bytes,
-        base64Decode(imagenPruebaBase64),
-      );
     });
 
     testWidgets('Guardar se habilita solo con cambios', (tester) async {
@@ -317,24 +300,11 @@ void main() {
       expect((imagen.image as NetworkImage).url, urlMiniaturaPrueba);
     });
 
-    testWidgets('una foto antigua usa la miniatura en base64', (tester) async {
+    testWidgets('sin miniatura muestra el ícono de error', (tester) async {
       await abrir(tester);
       await emitir(tester, [
-        crearFotoAntigua(id: 'a').copyWith(imagenBase64: 'no se usa'),
-      ]);
-
-      final imagen = tester.widget<Image>(find.byType(Image));
-      expect(
-        (imagen.image as MemoryImage).bytes,
-        base64Decode(imagenPruebaBase64),
-      );
-    });
-
-    testWidgets('una imagen dañada muestra el ícono de error', (tester) async {
-      await abrir(tester);
-      await emitir(tester, [
-        crearFotoAntigua(id: 'a').copyWith(miniaturaBase64: 'no es base64!'),
-        crearFotoAntigua(id: 'b').copyWith(miniaturaBase64: ''),
+        crearFoto(id: 'a').copyWith(urlMiniatura: ''),
+        crearFoto(id: 'b').copyWith(urlMiniatura: ''),
       ]);
 
       expect(find.byIcon(Icons.broken_image), findsNWidgets(2));
