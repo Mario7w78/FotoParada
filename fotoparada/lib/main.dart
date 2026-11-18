@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
 import 'routes/app_routes.dart';
@@ -35,6 +36,14 @@ class FotoParadaApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFEAF7FC),
         useMaterial3: true,
       ),
+      // Calendarios y textos de Material en español.
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       initialRoute: initialRoute,
       routes: AppRoutes.routes,
     );

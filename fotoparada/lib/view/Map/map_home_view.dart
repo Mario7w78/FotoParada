@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../../services/auth_service.dart';
 import 'Components/location_search_bar.dart';
 import 'map_preview_view.dart';
-import 'map_view.dart';
 
 class MapHomeView extends StatefulWidget {
   const MapHomeView({super.key, required this.mapViewModel});
@@ -14,6 +14,25 @@ class MapHomeView extends StatefulWidget {
 }
 
 class _MapHomeViewState extends State<MapHomeView> {
+  final AuthService _authService = AuthService();
+
+  /// Saludo según la hora con el primer nombre del usuario que inició sesión.
+  String _saludo() {
+    final hora = DateTime.now().hour;
+    final String saludo;
+    if (hora < 12) {
+      saludo = 'BUENOS DÍAS';
+    } else if (hora < 19) {
+      saludo = 'BUENAS TARDES';
+    } else {
+      saludo = 'BUENAS NOCHES';
+    }
+
+    final nombre = _authService.displayName.trim();
+    if (nombre.isEmpty) return saludo;
+    return '$saludo, ${nombre.split(' ').first.toUpperCase()}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +46,7 @@ class _MapHomeViewState extends State<MapHomeView> {
                 spacing: 12,
                 children: [
                   Text(
-                    "BUENOS DÍAS, MARIO",
+                    _saludo(),
                     style: TextStyle(color: Colors.blue, fontWeight: .bold),
                   ),
                   Text(

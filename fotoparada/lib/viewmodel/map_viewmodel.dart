@@ -26,6 +26,7 @@ class MapViewModel extends ChangeNotifier {
   // Punto en el que deben centrarse los mapas que usan este viewmodel.
   LatLng? get center => _center;
   bool get isLoading => _isLoading;
+  bool get isSearching => _isSearching;
   String? get errorMessage => _errorMessage;
 
   void moveTo(LatLng point) {

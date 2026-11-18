@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fotoparada/routes/app_routes.dart';
 import 'package:fotoparada/view/Map/map_view.dart';
