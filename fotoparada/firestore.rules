@@ -17,19 +17,22 @@ service cloud.firestore {
       return foto.privacidad == 'publica' || esUsuario(foto.uid);
     }
 
-    // ---------------------------------------------------------------- Fotos
+    // Integrante 2 - Gestión de fotografías
     match /fotos/{fotoId} {
       allow read: if autenticado() && fotoVisible(resource.data);
       allow create: if esUsuario(request.resource.data.uid);
       allow delete: if esUsuario(resource.data.uid);
-      // El dueño edita su foto. Los demás solo pueden mover el contador de
-      // likes en ±1, y solo junto con su propia reacción (ver reaccionar()
-      // en InteractionService).
-      allow update: if esUsuario(resource.data.uid) || soloCambiaLikes(fotoId);
+      // El dueño edita su foto sin cambiar de dueño.
+      // Integrante 5: los demás solo pueden mover el contador de likes en ±1,
+      // y solo junto con su propia reacción (ver reaccionar() en
+      // InteractionService).
+      allow update: if (esUsuario(resource.data.uid)
+                        && request.resource.data.uid == resource.data.uid)
+                    || soloCambiaLikes(fotoId);
 
       function soloCambiaLikes(fotoId) {
         let reaccion = /databases/$(database)/documents/fotos/$(fotoId)/reacciones/$(request.auth.uid);
-        let diferencia = request.resource.data.likes - resource.data.likes;
+        let diferencia = request.resource.data.get('likes', 0) - resource.data.get('likes', 0);
         return autenticado()
           && fotoVisible(resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
@@ -65,14 +68,14 @@ service cloud.firestore {
       }
     }
 
-    // ------------------------------------------------------------ Check-ins
+    // Integrante 5 - Check-ins
     match /checkins/{checkinId} {
       allow read: if esUsuario(resource.data.uid);
       allow create: if esUsuario(request.resource.data.uid)
         && request.resource.data.distanciaMetros <= 150;
     }
 
-    // ---------------------------------------------------------------- Retos
+    // Integrante 5 - Retos fotográficos
     match /retos/{retoId} {
       allow read: if autenticado();
       allow create: if esUsuario(request.resource.data.creadorUid)
