@@ -1,0 +1,91 @@
+rules_version = '2';
+
+// Reglas de Firestore de FotoParada. Se publican desde la consola de Firebase
+// (Firestore Database → Reglas) copiando este archivo completo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function esUsuario(uid) {
+      return autenticado() && request.auth.uid == uid;
+    }
+
+    function fotoVisible(foto) {
+      return foto.privacidad == 'publica' || esUsuario(foto.uid);
+    }
+
+    // ---------------------------------------------------------------- Fotos
+    match /fotos/{fotoId} {
+      allow read: if autenticado() && fotoVisible(resource.data);
+      allow create: if esUsuario(request.resource.data.uid);
+      allow delete: if esUsuario(resource.data.uid);
+      // El dueño edita su foto. Los demás solo pueden mover el contador de
+      // likes en ±1, y solo junto con su propia reacción (ver reaccionar()
+      // en InteractionService).
+      allow update: if esUsuario(resource.data.uid) || soloCambiaLikes(fotoId);
+
+      function soloCambiaLikes(fotoId) {
+        let reaccion = /databases/$(database)/documents/fotos/$(fotoId)/reacciones/$(request.auth.uid);
+        let diferencia = request.resource.data.likes - resource.data.likes;
+        return autenticado()
+          && fotoVisible(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+          && ((diferencia == 1 && !exists(reaccion) && existsAfter(reaccion))
+            || (diferencia == -1 && exists(reaccion) && !existsAfter(reaccion)));
+      }
+
+      function fotoPadre() {
+        return get(/databases/$(database)/documents/fotos/$(fotoId)).data;
+      }
+
+      // ------------------------------------------------------- Comentarios
+      match /comentarios/{comentarioId} {
+        allow read: if autenticado() && fotoVisible(fotoPadre());
+        allow create: if esUsuario(request.resource.data.uid)
+          && fotoVisible(fotoPadre())
+          && request.resource.data.keys().hasOnly(['uid', 'nombreUsuario', 'texto', 'fecha'])
+          && request.resource.data.texto is string
+          && request.resource.data.texto.size() > 0
+          && request.resource.data.texto.size() <= 300;
+        // Lo borra su autor o el dueño de la foto.
+        allow delete: if esUsuario(resource.data.uid) || esUsuario(fotoPadre().uid);
+      }
+
+      // -------------------------------------------------------- Reacciones
+      // El id del documento es el uid: una reacción por usuario.
+      match /reacciones/{uid} {
+        allow read: if autenticado() && fotoVisible(fotoPadre());
+        allow create, update: if esUsuario(uid)
+          && fotoVisible(fotoPadre())
+          && request.resource.data.tipo in ['meGusta', 'meEncanta', 'asombro', 'aplauso'];
+        allow delete: if esUsuario(uid);
+      }
+    }
+
+    // ------------------------------------------------------------ Check-ins
+    match /checkins/{checkinId} {
+      allow read: if esUsuario(resource.data.uid);
+      allow create: if esUsuario(request.resource.data.uid)
+        && request.resource.data.distanciaMetros <= 150;
+    }
+
+    // ---------------------------------------------------------------- Retos
+    match /retos/{retoId} {
+      allow read: if autenticado();
+      allow create: if esUsuario(request.resource.data.creadorUid)
+        && request.resource.data.titulo is string
+        && request.resource.data.titulo.size() > 0
+        && request.resource.data.fotosObjetivo >= 1;
+      allow delete: if esUsuario(resource.data.creadorUid);
+
+      // El id del documento es el uid del participante.
+      match /participantes/{uid} {
+        allow read: if autenticado();
+        allow write: if esUsuario(uid);
+      }
+    }
+  }
+}

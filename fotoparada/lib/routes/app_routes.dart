@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:fotoparada/view/Map/map_full_screen_view.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../models/checkin_model.dart';
 import '../models/foto_model.dart';
+import '../models/reto_model.dart';
+import '../view/challenge_detail_view.dart';
+import '../view/challenges_view.dart';
+import '../view/checkin_view.dart';
+import '../view/create_challenge_view.dart';
 import '../view/edit_photo_view.dart';
 import '../view/forgot_password_view.dart';
 import '../view/login_view.dart';
 import '../view/main_view.dart';
 import '../view/my_photos_view.dart';
+import '../view/photo_interactions_view.dart';
 import '../view/register_view.dart';
+import '../view/share_location_view.dart';
 import '../view/upload_photo_view.dart';
+import '../viewmodel/share_location_viewmodel.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -22,6 +31,12 @@ class AppRoutes {
   static const String upload = '/upload';
   static const String myPhotos = '/my-photos';
   static const String editPhoto = '/edit-photo';
+  static const String photoInteractions = '/photo-interactions';
+  static const String shareLocation = '/share-location';
+  static const String checkIn = '/check-in';
+  static const String challenges = '/challenges';
+  static const String challengeDetail = '/challenge-detail';
+  static const String createChallenge = '/create-challenge';
 
   static final Map<String, WidgetBuilder> routes = {
     login: (context) => const LoginView(),
@@ -36,5 +51,20 @@ class AppRoutes {
     fullScreenMap: (context) => MapFullScreenView(
       mapViewModel: ModalRoute.of(context)!.settings.arguments as MapViewModel,
     ),
+    photoInteractions: (context) => PhotoInteractionsView(
+      foto: ModalRoute.of(context)!.settings.arguments as Foto,
+    ),
+    shareLocation: (context) => ShareLocationView(
+      args: ModalRoute.of(context)!.settings.arguments as ShareLocationArgs,
+    ),
+    // Sin argumento muestra solo el historial de check-ins.
+    checkIn: (context) => CheckInView(
+      lugar: ModalRoute.of(context)!.settings.arguments as LugarCheckIn?,
+    ),
+    challenges: (context) => const ChallengesView(),
+    challengeDetail: (context) => ChallengeDetailView(
+      reto: ModalRoute.of(context)!.settings.arguments as Reto,
+    ),
+    createChallenge: (context) => const CreateChallengeView(),
   };
 }

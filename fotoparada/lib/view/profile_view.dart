@@ -87,6 +87,19 @@ class _ProfileViewState extends State<ProfileView> {
                 label: const Text('Mis fotos'),
               ),
               const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.challenges),
+                icon: const Icon(Icons.emoji_events_outlined),
+                label: const Text('Retos fotográficos'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.checkIn),
+                icon: const Icon(Icons.where_to_vote_outlined),
+                label: const Text('Mis check-ins'),
+              ),
+              const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: _viewModel.isSigningOut ? null : _cerrarSesion,
                 style: TextButton.styleFrom(foregroundColor: Colors.red),

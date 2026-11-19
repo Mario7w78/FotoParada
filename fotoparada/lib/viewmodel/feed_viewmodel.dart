@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/foto_model.dart';
-import '../services/api_service.dart';
+import '../services/photo_service.dart';
 
 class FeedViewModel extends ChangeNotifier {
-  FeedViewModel({ApiService? apiService})
-      : _apiService = apiService ?? ApiService();
+  FeedViewModel({PhotoService? photoService})
+      : _photoService = photoService ?? PhotoService();
 
-  final ApiService _apiService;
+  final PhotoService _photoService;
+
+  StreamSubscription<List<Foto>>? _suscripcion;
 
   List<Foto> _fotos = [];
   List<Foto> get fotos => _fotos;
@@ -19,12 +23,13 @@ class FeedViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // La vista puede destruirse (p. ej. al cambiar de pestaña) mientras
-  // cargarFotos() sigue esperando a la API.
+  // se espera la respuesta de Firestore.
   bool _disposed = false;
 
   @override
   void dispose() {
     _disposed = true;
+    _suscripcion?.cancel();
     super.dispose();
   }
 
@@ -33,18 +38,27 @@ class FeedViewModel extends ChangeNotifier {
     if (!_disposed) super.notifyListeners();
   }
 
-  Future<void> cargarFotos() async {
+  /// Escucha las fotos públicas de Firestore. También sirve para reintentar.
+  void cargarFotos() {
+    _suscripcion?.cancel();
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      _fotos = await _apiService.obtenerFotos();
-    } catch (_) {
-      _errorMessage = 'No se pudieron cargar las fotos.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    _suscripcion = _photoService.obtenerFotosPublicas().listen(
+      (fotos) {
+        _fotos = fotos;
+        _isLoading = false;
+        _errorMessage = null;
+        notifyListeners();
+      },
+      onError: (Object error) {
+        _isLoading = false;
+        _errorMessage = error is PhotoException
+            ? error.message
+            : 'No se pudieron cargar las fotos.';
+        notifyListeners();
+      },
+    );
   }
 }
