@@ -17,7 +17,7 @@ class _MapFullScreenViewState extends State<MapFullScreenView> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Mapa", style: TextStyle(fontWeight: .bold),),
+        title: const Text("Mapa", style: TextStyle(fontWeight: .bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

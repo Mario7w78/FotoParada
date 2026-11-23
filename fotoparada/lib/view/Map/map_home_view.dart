@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../../models/foto_model.dart';
 import '../../services/auth_service.dart';
+import '../widgets/interaccion_widgets.dart';
 import 'Components/location_search_bar.dart';
+import 'Components/nearby_photos_section.dart';
 import 'map_preview_view.dart';
 
 class MapHomeView extends StatefulWidget {
@@ -39,39 +42,58 @@ class _MapHomeViewState extends State<MapHomeView> {
       body: SafeArea(
         child: Padding(
           padding: .all(20),
-          child: Column(
-            children: [
-              Column(
-                crossAxisAlignment: .start,
-                spacing: 12,
-                children: [
-                  Text(
-                    _saludo(),
-                    style: TextStyle(color: Colors.blue, fontWeight: .bold),
-                  ),
-                  Text(
-                    "¿Dónde hacemos las fotos hoy?",
-                    style: TextStyle(fontWeight: .bold, fontSize: 24),
-                  ),
-                  LocationSearchBar(mapViewModel: widget.mapViewModel,),
-                  MapPreviewView(mapViewModel: widget.mapViewModel,),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Descubre cerca de ti",
-                        style: TextStyle(fontWeight: .bold, fontSize: 20),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Column(
+                  crossAxisAlignment: .start,
+                  spacing: 12,
+                  children: [
+                    Text(
+                      _saludo(),
+                      style: TextStyle(color: Colors.blue, fontWeight: .bold),
+                    ),
+                    Text(
+                      "¿Dónde hacemos las fotos hoy?",
+                      style: TextStyle(fontWeight: .bold, fontSize: 24),
+                    ),
+                    LocationSearchBar(mapViewModel: widget.mapViewModel),
+                    ListenableBuilder(
+                      listenable: widget.mapViewModel,
+                      builder: (context, _) => SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          spacing: 8,
+                          children: [
+                            ChipPildora(
+                              etiqueta: 'Todas',
+                              seleccionado:
+                                  widget.mapViewModel.categoria == null,
+                              onSelected: () =>
+                                  widget.mapViewModel.cambiarCategoria(null),
+                            ),
+                            for (final categoria in CategoriaFoto.values)
+                              ChipPildora(
+                                etiqueta: etiquetaCategoria(categoria),
+                                icono: iconoCategoria(categoria),
+                                seleccionado:
+                                    widget.mapViewModel.categoria == categoria,
+                                onSelected: () => widget.mapViewModel
+                                    .cambiarCategoria(categoria),
+                              ),
+                          ],
+                        ),
                       ),
-                      TextButton(onPressed: () {}, child: Text("Ver Todos")),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                    ),
+                    MapPreviewView(mapViewModel: widget.mapViewModel),
+                    NearbyPhotosSection(mapViewModel: widget.mapViewModel),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-

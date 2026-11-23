@@ -26,12 +26,16 @@ class _MapPreviewViewState extends State<MapPreviewView> {
           );
         },
         child: IgnorePointer(
-          child:  SizedBox(
+          child: SizedBox(
             height: 300,
             width: double.infinity,
-            child: MapView(interactive: false, initialZoom: 15, viewModel: widget.mapViewModel,),
+            child: MapView(
+              interactive: false,
+              initialZoom: 15,
+              viewModel: widget.mapViewModel,
+            ),
           ),
-        )
+        ),
       ),
     );
   }
