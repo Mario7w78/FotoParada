@@ -15,6 +15,7 @@ import '../view/login_view.dart';
 import '../view/main_view.dart';
 import '../view/my_photos_view.dart';
 import '../view/photo_interactions_view.dart';
+import '../view/location_detail_view.dart';
 import '../view/register_view.dart';
 import '../view/share_location_view.dart';
 import '../view/upload_photo_view.dart';
@@ -37,6 +38,7 @@ class AppRoutes {
   static const String challenges = '/challenges';
   static const String challengeDetail = '/challenge-detail';
   static const String createChallenge = '/create-challenge';
+  static const String locationDetail = '/location-detail';
 
   static final Map<String, WidgetBuilder> routes = {
     login: (context) => const LoginView(),
@@ -66,5 +68,8 @@ class AppRoutes {
       reto: ModalRoute.of(context)!.settings.arguments as Reto,
     ),
     createChallenge: (context) => const CreateChallengeView(),
+    locationDetail: (context) => LocationDetailView(
+      nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
+    ),
   };
 }
