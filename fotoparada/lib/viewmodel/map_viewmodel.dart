@@ -3,11 +3,130 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../Utils/debounce.dart';
+import '../models/foto_model.dart';
 import '../models/geocoding_result.dart';
 import '../services/geocoding_service.dart';
+import '../services/photo_service.dart';
+
+/// Fotos tomadas en el mismo lugar, que el mapa dibuja como un solo marcador.
+class PuntoInteres {
+  const PuntoInteres({required this.centro, required this.fotos});
+
+  final LatLng centro;
+  final List<Foto> fotos;
+
+  int get cantidad => fotos.length;
+}
 
 class MapViewModel extends ChangeNotifier {
+  MapViewModel({PhotoService? photoService})
+    : _photoService = photoService ?? PhotoService() {
+    _escucharFotos();
+  }
+
+  final PhotoService _photoService;
+  StreamSubscription<List<Foto>>? _suscripcion;
+
+  List<Foto> _fotos = [];
+  String? _errorFotos;
+
+  /// null muestra todas las categorías.
+  CategoriaFoto? _categoria;
+  CategoriaFoto? get categoria => _categoria;
+
+  /// Fotos públicas que se dibujan como marcadores en el mapa.
+  List<Foto> get fotos => _fotos;
+  String? get errorFotos => _errorFotos;
+
+  /// Las fotos a menos de esta distancia de la primera de un punto se
+  /// agrupan en él.
+  static const double radioAgrupacionMetros = 100;
+
+  /// Fotos agrupadas por lugar, para mostrar cuántas hay en cada punto.
+  List<PuntoInteres> get puntosInteres {
+    const medidor = Distance();
+    final centros = <LatLng>[];
+    final grupos = <List<Foto>>[];
+
+    for (final foto in _fotos) {
+      final punto = LatLng(foto.latitud, foto.longitud);
+      final indice = centros.indexWhere(
+        (centro) =>
+            medidor.as(LengthUnit.Meter, centro, punto) <=
+            radioAgrupacionMetros,
+      );
+      if (indice == -1) {
+        centros.add(punto);
+        grupos.add([foto]);
+      } else {
+        grupos[indice].add(foto);
+      }
+    }
+
+    return [
+      for (var i = 0; i < centros.length; i++)
+        PuntoInteres(centro: centros[i], fotos: grupos[i]),
+    ];
+  }
+
+  /// Distancia máxima a la que una foto se considera "cerca de ti".
+  static const double radioExploracionMetros = 5000;
+
+  /// Fotos a menos de [radioExploracionMetros] de la posición actual, de la
+  /// más cercana a la más lejana. Vacía mientras no se conozca la posición.
+  List<({Foto foto, double distancia})> get fotosCercanas {
+    final pos = _currentPosition;
+    if (pos == null) return const [];
+
+    const medidor = Distance();
+    final origen = LatLng(pos.latitude, pos.longitude);
+    final cercanas = <({Foto foto, double distancia})>[];
+    for (final foto in _fotos) {
+      final distancia = medidor.as(
+        LengthUnit.Meter,
+        origen,
+        LatLng(foto.latitud, foto.longitud),
+      );
+      if (distancia <= radioExploracionMetros) {
+        cercanas.add((foto: foto, distancia: distancia));
+      }
+    }
+    cercanas.sort((a, b) => a.distancia.compareTo(b.distancia));
+    return cercanas;
+  }
+
+  void cambiarCategoria(CategoriaFoto? valor) {
+    if (_categoria == valor) return;
+    _categoria = valor;
+    _fotos = [];
+    _escucharFotos();
+    notifyListeners();
+  }
+
+  void _escucharFotos() {
+    _suscripcion?.cancel();
+    _errorFotos = null;
+    final consulta = _categoria == null
+        ? _photoService.obtenerFotosPublicas()
+        : _photoService.obtenerFotosPublicasPorCategoria(_categoria!);
+
+    _suscripcion = consulta.listen(
+      (fotos) {
+        _fotos = fotos;
+        _errorFotos = null;
+        notifyListeners();
+      },
+      onError: (Object error) {
+        _errorFotos = error is PhotoException
+            ? error.message
+            : 'No se pudieron cargar las fotos del mapa.';
+        notifyListeners();
+      },
+    );
+  }
+
   final GeocodingService _geocodingService = GeocodingService();
   late final _debouncedSearch = debounce(_geocodingService.search);
 
@@ -32,6 +151,20 @@ class MapViewModel extends ChangeNotifier {
   void moveTo(LatLng point) {
     _center = point;
     notifyListeners();
+  }
+
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _suscripcion?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
   }
 
   Future<void> searchPlaces(String query) async {
