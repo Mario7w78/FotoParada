@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../../../models/geocoding_result.dart';
 
 class LocationSearchBar extends StatefulWidget {
