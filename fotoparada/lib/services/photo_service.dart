@@ -172,6 +172,39 @@ class PhotoService {
     );
   }
 
+  // =========================================================================
+  // Consultas por Ubicación
+  // =========================================================================
+
+  /// Retorna un stream de fotos públicas filtradas por [nombreLugar],
+  /// ordenadas por fecha de subida (más recientes primero).
+  Stream<List<Foto>> obtenerFotosPorLugarRecientes(String nombreLugar, {int limite = 30}) {
+    return _escuchar(
+      _fotos
+          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
+          .where('nombreLugar', isEqualTo: nombreLugar)
+          .limit(limite),
+    );
+  }
+
+  /// Retorna un stream de fotos públicas filtradas por [nombreLugar],
+  /// ordenadas por la cantidad de likes (mayor a menor).
+  Stream<List<Foto>> obtenerFotosPorLugarPopulares(String nombreLugar, {int limite = 30}) {
+    return _fotos
+        .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
+        .where('nombreLugar', isEqualTo: nombreLugar)
+        .orderBy('likes', descending: true) // Ordenamos por likes de mayor a menor
+        .limit(limite)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(Foto.fromFirestore).toList())
+        .handleError((Object error) {
+      if (error is FirebaseException) {
+        throw PhotoException(_mapError(error));
+      }
+      throw error;
+    });
+  }
+
   String _mapError(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':

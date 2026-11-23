@@ -96,10 +96,20 @@ class _MapViewState extends State<MapView> {
                       point: LatLng(pos.latitude, pos.longitude),
                       width: 40,
                       height: 40,
-                      child: Icon(
-                        Icons.location_on,
-                        color: Colors.blue,
-                        size: 40,
+                      child: GestureDetector(
+                        onTap: () {
+                          // TODO: Pasar el nombre real del lugar
+                          Navigator.pushNamed(
+                            context, 
+                            '/location-detail', 
+                            arguments: 'Ubicación actual'
+                          );
+                        },
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.blue,
+                          size: 40,
+                        ),
                       ),
                     ),
                 ],
