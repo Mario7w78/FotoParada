@@ -80,24 +80,34 @@ class _ProfileViewState extends State<ProfileView> {
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.myPhotos),
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Mis fotos'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.challenges),
-                icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('Retos fotográficos'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.checkIn),
-                icon: const Icon(Icons.where_to_vote_outlined),
-                label: const Text('Mis check-ins'),
+              // Mismo ancho para los tres botones para que queden alineados.
+              SizedBox(
+                width: 260,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.myPhotos),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Mis fotos'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.challenges),
+                      icon: const Icon(Icons.emoji_events_outlined),
+                      label: const Text('Retos fotográficos'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.checkIn),
+                      icon: const Icon(Icons.where_to_vote_outlined),
+                      label: const Text('Mis check-ins'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               TextButton.icon(

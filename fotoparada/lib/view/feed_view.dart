@@ -91,11 +91,27 @@ class _FeedViewState extends State<FeedView> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        foto.nombreLugar.isNotEmpty
-                            ? foto.nombreLugar
-                            : 'Ubicación: ${foto.latitud}, ${foto.longitud}',
-                        style: const TextStyle(color: Colors.grey),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.place_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              // 4 decimales (~11 m) bastan para ubicar la foto.
+                              foto.nombreLugar.isNotEmpty
+                                  ? foto.nombreLugar
+                                  : '${foto.latitud.toStringAsFixed(4)}, '
+                                      '${foto.longitud.toStringAsFixed(4)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(

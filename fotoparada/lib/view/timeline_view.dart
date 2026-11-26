@@ -277,7 +277,9 @@ class _TarjetaResumen extends StatelessWidget {
           ),
           const _Separador(),
           Expanded(
-            child: _Dato(valor: resumen.periodo, etiqueta: 'de recuerdos'),
+            child: resumen.periodo == 'el mismo día'
+                ? const _Dato(valor: 'Mismo día', etiqueta: 'todas las fotos')
+                : _Dato(valor: resumen.periodo, etiqueta: 'de recuerdos'),
           ),
         ],
       ),

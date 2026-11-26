@@ -3,6 +3,8 @@ import 'package:fotoparada/view/Map/Components/location_search_bar.dart';
 import 'package:fotoparada/view/Map/map_view.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
+import '../widgets/interaccion_widgets.dart';
+
 class MapFullScreenView extends StatefulWidget {
   const MapFullScreenView({super.key, required this.mapViewModel});
   final MapViewModel mapViewModel;
@@ -14,13 +16,9 @@ class MapFullScreenView extends StatefulWidget {
 class _MapFullScreenViewState extends State<MapFullScreenView> {
   @override
   Widget build(BuildContext context) {
+    // Sin AppBar: el título quedaba encima del mapa y no se leía. El botón
+    // para volver va junto a la búsqueda, con fondo blanco.
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text("Mapa", style: TextStyle(fontWeight: .bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
       body: Stack(
         children: [
           Positioned.fill(
@@ -33,7 +31,22 @@ class _MapFullScreenViewState extends State<MapFullScreenView> {
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: LocationSearchBar(mapViewModel: widget.mapViewModel),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BotonIconoClaro(
+                      icono: Icons.arrow_back,
+                      tooltip: 'Volver',
+                      onPressed: () => Navigator.maybePop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: LocationSearchBar(
+                        mapViewModel: widget.mapViewModel,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
