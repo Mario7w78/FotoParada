@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/checkin_model.dart';
+import '../models/coleccion_model.dart';
 import '../models/comentario_model.dart';
 import '../models/foto_model.dart';
 import '../models/reaccion_model.dart';
@@ -9,6 +10,7 @@ import '../routes/app_routes.dart';
 import '../viewmodel/photo_interactions_viewmodel.dart';
 import '../viewmodel/share_location_viewmodel.dart';
 import 'widgets/interaccion_widgets.dart';
+import 'widgets/recuerdos_widgets.dart';
 
 /// Detalle de una foto con sus reacciones y comentarios.
 class PhotoInteractionsView extends StatefulWidget {
@@ -107,6 +109,29 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
                           : foto.nombreLugar,
                       titulo: foto.titulo,
                       acciones: [
+                        // Integrante 4: guardar la foto en una colección.
+                        BotonIconoClaro(
+                          icono: Icons.bookmark_add_outlined,
+                          tooltip: 'Guardar en colección',
+                          onPressed: () => mostrarGuardarEnColeccion(
+                            context,
+                            ElementoColeccion.desdeFoto(foto),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Integrante 4: línea de tiempo del lugar.
+                        if (foto.nombreLugar.isNotEmpty) ...[
+                          BotonIconoClaro(
+                            icono: Icons.timeline,
+                            tooltip: 'Línea de tiempo del lugar',
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.timeline,
+                              arguments: foto.nombreLugar,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         BotonIconoClaro(
                           icono: Icons.share_outlined,
                           tooltip: 'Compartir',

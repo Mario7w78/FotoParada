@@ -3,11 +3,16 @@ import 'package:fotoparada/view/Map/map_full_screen_view.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 
 import '../models/checkin_model.dart';
+import '../models/coleccion_model.dart';
 import '../models/foto_model.dart';
 import '../models/reto_model.dart';
 import '../view/challenge_detail_view.dart';
 import '../view/challenges_view.dart';
 import '../view/checkin_view.dart';
+import '../view/collection_detail_view.dart';
+import '../view/compare_photos_view.dart';
+import '../view/timeline_view.dart';
+import '../viewmodel/compare_photos_viewmodel.dart';
 import '../view/create_challenge_view.dart';
 import '../view/edit_photo_view.dart';
 import '../view/forgot_password_view.dart';
@@ -39,6 +44,10 @@ class AppRoutes {
   static const String challengeDetail = '/challenge-detail';
   static const String createChallenge = '/create-challenge';
   static const String locationDetail = '/location-detail';
+  // Integrante 4 - Recuerdos y organización
+  static const String timeline = '/timeline';
+  static const String comparePhotos = '/compare-photos';
+  static const String collectionDetail = '/collection-detail';
 
   static final Map<String, WidgetBuilder> routes = {
     login: (context) => const LoginView(),
@@ -70,6 +79,15 @@ class AppRoutes {
     createChallenge: (context) => const CreateChallengeView(),
     locationDetail: (context) => LocationDetailView(
       nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
+    ),
+    timeline: (context) => TimelineView(
+      nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
+    ),
+    comparePhotos: (context) => ComparePhotosView(
+      args: ModalRoute.of(context)!.settings.arguments as ComparePhotosArgs,
+    ),
+    collectionDetail: (context) => CollectionDetailView(
+      coleccion: ModalRoute.of(context)!.settings.arguments as Coleccion,
     ),
   };
 }

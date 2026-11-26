@@ -36,6 +36,12 @@ Colecciones que usa la app:
 | `fotos/{id}/reacciones/{uid}` | Una reacción por usuario; actualiza `likes` de la foto. |
 | `checkins` | Check-ins validados con GPS (radio de 150 m). |
 | `retos`, `retos/{id}/participantes/{uid}` | Retos fotográficos y avance de cada usuario. |
+| `colecciones` | Colecciones del usuario: "Quiero visitar", "Mis viajes" (id `{uid}_quiero_visitar` / `{uid}_mis_viajes`) y personalizadas. Guarda `cantidad` y `portadaUrl`. |
+| `colecciones/{id}/elementos/{elementoId}` | Fotos (`foto_{fotoId}`) o lugares (`lugar_{nombre}`) guardados, con nota personal. |
+
+La línea de tiempo y la comparación de fotos (Integrante 4) leen `fotos` solo
+con filtros de igualdad (`privacidad` + `nombreLugar`, `uid` + `nombreLugar`) y
+ordenan en el teléfono, así que **no necesitan índices compuestos**.
 
 ## Getting Started
 

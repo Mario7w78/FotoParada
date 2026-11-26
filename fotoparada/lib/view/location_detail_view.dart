@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/coleccion_model.dart';
 import '../models/foto_model.dart';
+import '../routes/app_routes.dart';
 import '../viewmodel/location_detail_viewmodel.dart';
+import 'widgets/recuerdos_widgets.dart';
 
 class LocationDetailView extends StatefulWidget {
   const LocationDetailView({
@@ -36,6 +39,34 @@ class _LocationDetailViewState extends State<LocationDetailView> {
       appBar: AppBar(
         title: Text(widget.nombreLugar),
         centerTitle: true,
+        // Integrante 4: línea de tiempo y guardar el lugar en una colección.
+        actions: [
+          IconButton(
+            tooltip: 'Línea de tiempo',
+            icon: const Icon(Icons.timeline),
+            onPressed: () => Navigator.pushNamed(
+              context,
+              AppRoutes.timeline,
+              arguments: widget.nombreLugar,
+            ),
+          ),
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              final foto = _viewModel.fotos.firstOrNull;
+              return IconButton(
+                tooltip: 'Guardar lugar',
+                icon: const Icon(Icons.bookmark_add_outlined),
+                onPressed: foto == null
+                    ? null
+                    : () => mostrarGuardarEnColeccion(
+                          context,
+                          ElementoColeccion.desdeLugar(Lugar.desdeFoto(foto)),
+                        ),
+              );
+            },
+          ),
+        ],
       ),
       // ListenableBuilder escucha los cambios del ChangeNotifier (el ViewModel)
       body: ListenableBuilder(

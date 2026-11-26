@@ -90,5 +90,39 @@ service cloud.firestore {
         allow write: if esUsuario(uid);
       }
     }
+
+    // Integrante 4 - Colecciones ("Quiero visitar", "Mis viajes" y las que
+    // cree el usuario). Cada usuario solo ve y modifica las suyas.
+    match /colecciones/{coleccionId} {
+      function coleccionValida(data) {
+        return data.nombre is string
+          && data.nombre.size() > 0
+          && data.nombre.size() <= 40
+          && data.tipo in ['quieroVisitar', 'misViajes', 'personalizada']
+          && data.cantidad is int
+          && data.cantidad >= 0;
+      }
+
+      allow read, delete: if esUsuario(resource.data.uid);
+      allow create: if esUsuario(request.resource.data.uid)
+        && coleccionValida(request.resource.data);
+      // No se puede cambiar el dueño ni el tipo.
+      allow update: if esUsuario(resource.data.uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.tipo == resource.data.tipo
+        && coleccionValida(request.resource.data);
+
+      function duenoColeccion() {
+        return get(/databases/$(database)/documents/colecciones/$(coleccionId)).data.uid;
+      }
+
+      // Fotos o lugares guardados. Solo el dueño de la colección.
+      match /elementos/{elementoId} {
+        allow read, delete: if esUsuario(duenoColeccion());
+        allow create, update: if esUsuario(duenoColeccion())
+          && request.resource.data.tipo in ['foto', 'lugar']
+          && request.resource.data.get('nota', '').size() <= 200;
+      }
+    }
   }
 }
