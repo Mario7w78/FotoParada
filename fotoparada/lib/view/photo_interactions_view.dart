@@ -119,19 +119,18 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Integrante 4: línea de tiempo del lugar.
-                        if (foto.nombreLugar.isNotEmpty) ...[
-                          BotonIconoClaro(
-                            icono: Icons.timeline,
-                            tooltip: 'Línea de tiempo del lugar',
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.timeline,
-                              arguments: foto.nombreLugar,
-                            ),
+                        // Integrante 4: línea de tiempo del lugar (por
+                        // nombre o por cercanía si la foto no tiene nombre).
+                        BotonIconoClaro(
+                          icono: Icons.timeline,
+                          tooltip: 'Línea de tiempo del lugar',
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.timeline,
+                            arguments: Lugar.desdeFoto(foto),
                           ),
-                          const SizedBox(width: 8),
-                        ],
+                        ),
+                        const SizedBox(width: 8),
                         BotonIconoClaro(
                           icono: Icons.share_outlined,
                           tooltip: 'Compartir',

@@ -65,15 +65,19 @@ class EncabezadoPantalla extends StatelessWidget {
     required this.etiqueta,
     required this.titulo,
     this.acciones = const [],
+    this.mostrarVolver = true,
   });
 
   final String etiqueta;
   final String titulo;
   final List<Widget> acciones;
 
+  /// false en las pestañas principales, donde no hay a dónde volver.
+  final bool mostrarVolver;
+
   @override
   Widget build(BuildContext context) {
-    final puedeVolver = Navigator.of(context).canPop();
+    final puedeVolver = mostrarVolver && Navigator.of(context).canPop();
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       child: Column(

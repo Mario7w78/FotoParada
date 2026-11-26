@@ -88,7 +88,7 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
     Navigator.pushNamed(
       context,
       AppRoutes.timeline,
-      arguments: elemento.lugar.nombre,
+      arguments: elemento.lugar,
     );
   }
 

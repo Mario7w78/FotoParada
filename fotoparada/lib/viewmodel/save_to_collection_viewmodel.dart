@@ -92,9 +92,12 @@ class SaveToCollectionViewModel extends ChangeNotifier {
       if (_marcadas.contains(coleccion.id)) {
         await _service.quitarElemento(coleccion.id, elemento.id);
         _marcadas = {..._marcadas}..remove(coleccion.id);
+        _cambiarCantidad(coleccion.id, -1);
       } else {
-        await _service.agregarElemento(coleccion.id, elemento);
+        final agregado =
+            await _service.agregarElemento(coleccion.id, elemento);
         _marcadas = {..._marcadas, coleccion.id};
+        if (agregado) _cambiarCantidad(coleccion.id, 1);
       }
       return true;
     } catch (error) {
@@ -107,6 +110,13 @@ class SaveToCollectionViewModel extends ChangeNotifier {
       _ocupadas.remove(coleccion.id);
       notifyListeners();
     }
+  }
+
+  void _cambiarCantidad(String coleccionId, int diferencia) {
+    _colecciones = [
+      for (final c in _colecciones)
+        c.id == coleccionId ? c.conCantidad(c.cantidad + diferencia) : c,
+    ];
   }
 
   /// Crea una colección y guarda ahí el elemento.

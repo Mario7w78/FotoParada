@@ -5,6 +5,7 @@ import 'package:fotoparada/models/foto_model.dart';
 import 'package:fotoparada/services/coleccion_service.dart';
 import 'package:fotoparada/services/recuerdos_exception.dart';
 import 'package:fotoparada/services/recuerdos_service.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'interacciones_fakes.dart';
 
@@ -221,6 +222,30 @@ void main() {
         fotos.map((f) => f.id),
         ['privada-mia', 'publica-otro', 'publica-mia'],
       );
+    });
+
+    test('con coordenadas incluye fotos cercanas sin nombre de lugar',
+        () async {
+      // ~100 m de la plaza, sin nombre de lugar.
+      await guardar(fotoEn(id: 'cerca', uid: 'u2',
+              punto: const LatLng(-12.0455, -77.0428))
+          .copyWith(nombreLugar: ''));
+      // Miraflores, a varios km.
+      await guardar(fotoEn(id: 'lejos', uid: 'u2',
+              punto: const LatLng(-12.1211, -77.0297))
+          .copyWith(nombreLugar: ''));
+      await guardar(fotoEn(id: 'por-nombre', uid: 'u2'));
+
+      final fotos = await RecuerdosService(firestore: firestore)
+          .fotosDelLugar(
+            'Cerca de «Mural»',
+            uid: 'u1',
+            latitud: plazaDeArmas.latitude,
+            longitud: plazaDeArmas.longitude,
+          )
+          .first;
+
+      expect(fotos.map((f) => f.id).toSet(), {'cerca', 'por-nombre'});
     });
 
     test('sin sesión solo trae públicas', () async {

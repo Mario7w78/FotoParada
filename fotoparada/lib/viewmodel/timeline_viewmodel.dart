@@ -15,12 +15,18 @@ enum FiltroLineaTiempo { todas, mias }
 class TimelineViewModel extends ChangeNotifier {
   TimelineViewModel({
     required this.nombreLugar,
+    this.latitud,
+    this.longitud,
     RecuerdosService? recuerdosService,
     AuthService? authService,
   })  : _service = recuerdosService ?? RecuerdosService(),
         _authService = authService ?? AuthService();
 
   final String nombreLugar;
+
+  /// Si se dan, también entran las fotos cercanas sin nombre de lugar.
+  final double? latitud;
+  final double? longitud;
   final RecuerdosService _service;
   final AuthService _authService;
 
@@ -56,7 +62,13 @@ class TimelineViewModel extends ChangeNotifier {
   /// referencia de coordenadas y portada.
   Lugar? get lugar {
     if (_todas.isEmpty) return null;
-    return Lugar.desdeFoto(_todas.last);
+    final referencia = Lugar.desdeFoto(_todas.last);
+    return Lugar(
+      nombre: nombreLugar,
+      latitud: latitud ?? referencia.latitud,
+      longitud: longitud ?? referencia.longitud,
+      urlImagen: referencia.urlImagen,
+    );
   }
 
   bool _isLoading = true;
@@ -85,7 +97,14 @@ class TimelineViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _suscripcion = _service.fotosDelLugar(nombreLugar, uid: uid).listen(
+    _suscripcion = _service
+        .fotosDelLugar(
+          nombreLugar,
+          uid: uid,
+          latitud: latitud,
+          longitud: longitud,
+        )
+        .listen(
       (fotos) {
         _todas = fotos;
         _isLoading = false;

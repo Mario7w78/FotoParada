@@ -13,9 +13,25 @@ import 'widgets/recuerdos_widgets.dart';
 /// Integrante 4 - Línea de tiempo fotográfica de un lugar: cómo se ha visto a
 /// lo largo de los años.
 class TimelineView extends StatefulWidget {
-  const TimelineView({super.key, required this.nombreLugar, this.viewModel});
+  const TimelineView({
+    super.key,
+    required this.nombreLugar,
+    this.latitud,
+    this.longitud,
+    this.viewModel,
+  });
+
+  /// Abre la línea de tiempo de [lugar]: por nombre y por cercanía.
+  factory TimelineView.desdeLugar(Lugar lugar, {Key? key}) => TimelineView(
+        key: key,
+        nombreLugar: lugar.nombre,
+        latitud: lugar.latitud,
+        longitud: lugar.longitud,
+      );
 
   final String nombreLugar;
+  final double? latitud;
+  final double? longitud;
 
   /// Permite inyectar un viewmodel en las pruebas.
   final TimelineViewModel? viewModel;
@@ -26,7 +42,12 @@ class TimelineView extends StatefulWidget {
 
 class _TimelineViewState extends State<TimelineView> {
   late final TimelineViewModel _viewModel =
-      widget.viewModel ?? TimelineViewModel(nombreLugar: widget.nombreLugar);
+      widget.viewModel ??
+      TimelineViewModel(
+        nombreLugar: widget.nombreLugar,
+        latitud: widget.latitud,
+        longitud: widget.longitud,
+      );
 
   @override
   void initState() {
@@ -58,6 +79,8 @@ class _TimelineViewState extends State<TimelineView> {
       AppRoutes.comparePhotos,
       arguments: ComparePhotosArgs(
         nombreLugar: widget.nombreLugar,
+        latitud: widget.latitud,
+        longitud: widget.longitud,
         fotoAntesId: antes?.id,
         fotoDespuesId: despues?.id,
       ),

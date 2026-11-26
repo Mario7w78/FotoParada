@@ -101,6 +101,7 @@ class _CollectionsViewState extends State<CollectionsView> {
                 EncabezadoPantalla(
                   etiqueta: 'Recuerdos',
                   titulo: 'Mis colecciones',
+                  mostrarVolver: false,
                   acciones: [
                     BotonIconoClaro(
                       icono: Icons.add,
@@ -148,8 +149,11 @@ class _CollectionsViewState extends State<CollectionsView> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Text(
-          'Tienes ${textoCantidad(_viewModel.totalGuardados)} guardados en '
-          '${_viewModel.colecciones.length} colecciones.',
+          _viewModel.totalGuardados == 1
+              ? 'Tienes 1 elemento guardado en '
+                  '${_viewModel.colecciones.length} colecciones.'
+              : 'Tienes ${_viewModel.totalGuardados} elementos guardados en '
+                  '${_viewModel.colecciones.length} colecciones.',
           style: const TextStyle(color: ColoresFotoParada.gris),
         ),
       ),

@@ -80,9 +80,13 @@ class AppRoutes {
     locationDetail: (context) => LocationDetailView(
       nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
     ),
-    timeline: (context) => TimelineView(
-      nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
-    ),
+    // Recibe un Lugar (nombre + coordenadas) o solo el nombre del lugar.
+    timeline: (context) {
+      final args = ModalRoute.of(context)!.settings.arguments;
+      return args is Lugar
+          ? TimelineView.desdeLugar(args)
+          : TimelineView(nombreLugar: args as String);
+    },
     comparePhotos: (context) => ComparePhotosView(
       args: ModalRoute.of(context)!.settings.arguments as ComparePhotosArgs,
     ),

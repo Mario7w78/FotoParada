@@ -83,6 +83,19 @@ class Coleccion {
 
   bool get esPredeterminada => tipo.esPredeterminada;
 
+  /// Copia con otro contador, para reflejar un cambio sin volver a leerla.
+  Coleccion conCantidad(int nuevaCantidad) => Coleccion(
+        id: id,
+        uid: uid,
+        nombre: nombre,
+        descripcion: descripcion,
+        tipo: tipo,
+        cantidad: nuevaCantidad < 0 ? 0 : nuevaCantidad,
+        portadaUrl: portadaUrl,
+        fechaCreacion: fechaCreacion,
+        fechaActualizacion: fechaActualizacion,
+      );
+
   static String idPredeterminada(String uid, TipoColeccion tipo) =>
       '${uid}_${tipo.sufijoId}';
 
@@ -253,7 +266,11 @@ class ElementoColeccion {
 
   /// Lugar al que pertenece, para abrir su línea de tiempo.
   Lugar get lugar => Lugar(
-        nombre: nombreLugar.isEmpty ? titulo : nombreLugar,
+        nombre: nombreLugar.isNotEmpty
+            ? nombreLugar
+            : esFoto
+                ? 'Cerca de «$titulo»'
+                : titulo,
         latitud: latitud,
         longitud: longitud,
         urlImagen: urlImagen,
@@ -275,10 +292,13 @@ class Lugar {
   final double longitud;
   final String urlImagen;
 
-  /// Toma el nombre y las coordenadas de una foto del lugar.
+  /// Toma el nombre y las coordenadas de una foto del lugar. Si la foto no
+  /// tiene nombre de lugar se usa "Cerca de «título»".
   factory Lugar.desdeFoto(Foto foto) {
+    final titulo = foto.titulo.isEmpty ? 'esta foto' : '«${foto.titulo}»';
     return Lugar(
-      nombre: foto.nombreLugar.isEmpty ? foto.titulo : foto.nombreLugar,
+      nombre:
+          foto.nombreLugar.isEmpty ? 'Cerca de $titulo' : foto.nombreLugar,
       latitud: foto.latitud,
       longitud: foto.longitud,
       urlImagen:

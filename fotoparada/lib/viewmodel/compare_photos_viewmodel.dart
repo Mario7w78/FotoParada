@@ -17,11 +17,15 @@ enum LadoComparacion { antes, despues }
 class ComparePhotosArgs {
   const ComparePhotosArgs({
     required this.nombreLugar,
+    this.latitud,
+    this.longitud,
     this.fotoAntesId,
     this.fotoDespuesId,
   });
 
   final String nombreLugar;
+  final double? latitud;
+  final double? longitud;
   final String? fotoAntesId;
   final String? fotoDespuesId;
 }
@@ -105,7 +109,14 @@ class ComparePhotosViewModel extends ChangeNotifier {
     notifyListeners();
 
     _suscripcion =
-        _service.fotosDelLugar(nombreLugar, uid: _authService.uid).listen(
+        _service
+            .fotosDelLugar(
+              nombreLugar,
+              uid: _authService.uid,
+              latitud: args.latitud,
+              longitud: args.longitud,
+            )
+            .listen(
       (fotos) {
         _fotos = ordenarPorFechaToma(fotos);
         _ajustarSeleccion();
