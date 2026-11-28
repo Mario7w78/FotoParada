@@ -5,6 +5,7 @@ import '../models/foto_model.dart';
 import '../viewmodel/edit_photo_viewmodel.dart';
 import 'widgets/envio_segundo_plano.dart';
 import 'widgets/formulario_foto.dart';
+import 'widgets/foto_completa.dart';
 import 'widgets/foto_widgets.dart';
 
 class EditPhotoView extends StatefulWidget {
@@ -120,11 +121,18 @@ class _EditPhotoViewState extends State<EditPhotoView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: 300,
-                    child: ImagenFoto(url: widget.foto.urlImagen),
+                GestureDetector(
+                  onTap: () => verFotoCompleta(
+                    context,
+                    url: widget.foto.urlImagen,
+                    titulo: widget.foto.titulo,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 300,
+                      child: ImagenFoto(url: widget.foto.urlImagen),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

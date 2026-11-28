@@ -9,6 +9,7 @@ import '../models/reaccion_model.dart';
 import '../routes/app_routes.dart';
 import '../viewmodel/photo_interactions_viewmodel.dart';
 import '../viewmodel/share_location_viewmodel.dart';
+import 'widgets/foto_completa.dart';
 import 'widgets/interaccion_widgets.dart';
 import 'widgets/recuerdos_widgets.dart';
 
@@ -154,6 +155,11 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
                             aspectRatio: 4 / 3,
                             child: FotoConDegradado(
                               url: foto.urlImagen,
+                              onTap: () => verFotoCompleta(
+                                context,
+                                url: foto.urlImagen,
+                                titulo: foto.titulo,
+                              ),
                               titulo: foto.nombreLugar.isEmpty
                                   ? foto.titulo
                                   : foto.nombreLugar,

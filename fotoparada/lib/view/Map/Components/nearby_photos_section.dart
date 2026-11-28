@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../../models/foto_model.dart';
+import '../../../routes/app_routes.dart';
 import '../../../viewmodel/map_viewmodel.dart';
 import '../../widgets/foto_widgets.dart';
 import '../../widgets/interaccion_widgets.dart';
@@ -9,19 +9,19 @@ import '../../widgets/interaccion_widgets.dart';
 typedef _FotoCercana = ({Foto foto, double distancia});
 
 /// "Descubre cerca de ti": las fotos públicas más cercanas a la posición
-/// actual. Tocar una centra el mapa en ella.
+/// actual. Tocar una abre su detalle.
 class NearbyPhotosSection extends StatelessWidget {
   const NearbyPhotosSection({super.key, required this.mapViewModel});
 
   final MapViewModel mapViewModel;
 
-  void _irA(Foto foto) {
-    mapViewModel.moveTo(LatLng(foto.latitud, foto.longitud));
+  void _abrir(BuildContext context, Foto foto) {
+    Navigator.pushNamed(context, AppRoutes.photoInteractions, arguments: foto);
   }
 
-  void _verTodas(BuildContext context) {
+  void _verTodas(BuildContext contextoPantalla) {
     showModalBottomSheet<void>(
-      context: context,
+      context: contextoPantalla,
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
         expand: false,
@@ -52,7 +52,7 @@ class NearbyPhotosSection extends StatelessWidget {
                 subtitle: Text(_detalle(cercana)),
                 onTap: () {
                   Navigator.pop(context);
-                  _irA(cercana.foto);
+                  _abrir(contextoPantalla, cercana.foto);
                 },
               );
             },
@@ -91,14 +91,14 @@ class NearbyPhotosSection extends StatelessWidget {
                   ),
               ],
             ),
-            _construirContenido(fotos),
+            _construirContenido(context, fotos),
           ],
         );
       },
     );
   }
 
-  Widget _construirContenido(List<_FotoCercana> fotos) {
+  Widget _construirContenido(BuildContext context, List<_FotoCercana> fotos) {
     if (mapViewModel.currentPosition == null) {
       return const _MensajeVacio(
         'Activa tu ubicación para ver las fotos cercanas.',
@@ -115,10 +115,10 @@ class NearbyPhotosSection extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: fotos.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) => _TarjetaCercana(
+        itemBuilder: (_, index) => _TarjetaCercana(
           cercana: fotos[index],
           detalle: _detalle(fotos[index]),
-          onTap: () => _irA(fotos[index].foto),
+          onTap: () => _abrir(context, fotos[index].foto),
         ),
       ),
     );

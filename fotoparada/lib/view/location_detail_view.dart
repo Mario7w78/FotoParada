@@ -185,7 +185,14 @@ class _LocationDetailViewState extends State<LocationDetailView> {
       itemCount: _viewModel.fotos.length,
       itemBuilder: (context, index) {
         final foto = _viewModel.fotos[index];
-        return _buildMiniatura(foto);
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(
+            context,
+            AppRoutes.photoInteractions,
+            arguments: foto,
+          ),
+          child: _buildMiniatura(foto),
+        );
       },
     );
   }
