@@ -312,6 +312,17 @@ class Lugar {
   final double longitud;
   final String urlImagen;
 
+  /// Un punto que solo se conoce por sus coordenadas, por ejemplo la posición
+  /// actual.
+  factory Lugar.enPunto(double latitud, double longitud) {
+    return Lugar(
+      nombre: '$prefijoSinNombre${latitud.toStringAsFixed(4)}, '
+          '${longitud.toStringAsFixed(4)}',
+      latitud: latitud,
+      longitud: longitud,
+    );
+  }
+
   /// Toma el nombre y las coordenadas de una foto del lugar. Si la foto no
   /// tiene nombre de lugar se usa "Cerca de «título»".
   factory Lugar.desdeFoto(Foto foto) {

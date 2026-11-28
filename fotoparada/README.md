@@ -1,6 +1,6 @@
-# fotoparada
+# FotoParada: configuración
 
-A new Flutter project.
+Descripción, pantallas y tecnologías en el [README principal](../README.md).
 
 ## Cómo configurar las claves
 
@@ -39,8 +39,8 @@ Colecciones que usa la app:
 | `colecciones` | Colecciones del usuario: "Quiero visitar", "Mis viajes" (id `{uid}_quiero_visitar` / `{uid}_mis_viajes`) y personalizadas. Guarda `cantidad` y `portadaUrl`. |
 | `colecciones/{id}/elementos/{elementoId}` | Fotos (`foto_{fotoId}`) o lugares (`lugar_{nombre}`) guardados, con nota personal. |
 
-La línea de tiempo y la comparación de fotos (Integrante 4) buscan en `fotos`
-por nombre de lugar y por cercanía (un recuadro de latitud y longitud), y
+La línea de tiempo, la comparación de fotos y el detalle de ubicación buscan en
+`fotos` por nombre de lugar y por cercanía (un recuadro de latitud y longitud), y
 ordenan en el teléfono. La búsqueda por cercanía necesita **dos índices
 compuestos** en la colección `fotos` (Firestore Database → Índices), ambos con
 todos los campos en orden ascendente:
@@ -50,19 +50,5 @@ todos los campos en orden ascendente:
 | `privacidad`, `latitud`, `longitud` | Fotos públicas cercanas |
 | `uid`, `latitud`, `longitud` | Fotos propias cercanas |
 
-Sin ellos la línea de tiempo muestra "Falta crear el índice de Firestore"; la
+Sin ellos esas pantallas muestran "Falta crear el índice de Firestore"; la
 consola de depuración trae el enlace para crearlos.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

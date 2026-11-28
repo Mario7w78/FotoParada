@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:fotoparada/viewmodel/map_viewmodel.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../models/coleccion_model.dart';
 import '../../models/foto_model.dart';
 import '../../routes/app_routes.dart';
 import '../widgets/foto_widgets.dart';
@@ -111,14 +112,12 @@ class _MapViewState extends State<MapView> {
                       width: 40,
                       height: 40,
                       child: GestureDetector(
-                        onTap: () {
-                          // TODO: Pasar el nombre real del lugar
-                          Navigator.pushNamed(
-                            context, 
-                            '/location-detail', 
-                            arguments: 'Ubicación actual'
-                          );
-                        },
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.locationDetail,
+                          arguments:
+                              Lugar.enPunto(pos.latitude, pos.longitude),
+                        ),
                         child: const Icon(
                           Icons.location_on,
                           color: Colors.blue,

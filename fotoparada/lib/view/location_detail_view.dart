@@ -9,9 +9,26 @@ class LocationDetailView extends StatefulWidget {
   const LocationDetailView({
     super.key,
     required this.nombreLugar,
+    this.latitud,
+    this.longitud,
+    this.viewModel,
   });
 
+  /// Muestra las fotos cercanas a [lugar].
+  factory LocationDetailView.desdeLugar(Lugar lugar, {Key? key}) =>
+      LocationDetailView(
+        key: key,
+        nombreLugar: lugar.nombre,
+        latitud: lugar.latitud,
+        longitud: lugar.longitud,
+      );
+
   final String nombreLugar;
+  final double? latitud;
+  final double? longitud;
+
+  /// Permite inyectar un viewmodel en las pruebas.
+  final LocationDetailViewModel? viewModel;
 
   @override
   State<LocationDetailView> createState() => _LocationDetailViewState();
@@ -24,7 +41,25 @@ class _LocationDetailViewState extends State<LocationDetailView> {
   void initState() {
     super.initState();
     // Instanciamos el ViewModel con el lugar que recibimos por parámetro
-    _viewModel = LocationDetailViewModel(nombreLugar: widget.nombreLugar);
+    _viewModel = widget.viewModel ??
+        LocationDetailViewModel(
+          nombreLugar: widget.nombreLugar,
+          latitud: widget.latitud,
+          longitud: widget.longitud,
+        );
+  }
+
+  /// El punto de la pantalla, si se abrió por coordenadas.
+  Lugar? get _punto {
+    final latitud = widget.latitud;
+    final longitud = widget.longitud;
+    if (latitud == null || longitud == null) return null;
+    return Lugar(
+      nombre: widget.nombreLugar,
+      latitud: latitud,
+      longitud: longitud,
+      urlImagen: _viewModel.fotos.firstOrNull?.urlMiniatura ?? '',
+    );
   }
 
   @override
@@ -47,7 +82,7 @@ class _LocationDetailViewState extends State<LocationDetailView> {
             onPressed: () => Navigator.pushNamed(
               context,
               AppRoutes.timeline,
-              arguments: widget.nombreLugar,
+              arguments: _punto ?? widget.nombreLugar,
             ),
           ),
           ListenableBuilder(
@@ -61,7 +96,9 @@ class _LocationDetailViewState extends State<LocationDetailView> {
                     ? null
                     : () => mostrarGuardarEnColeccion(
                           context,
-                          ElementoColeccion.desdeLugar(Lugar.desdeFoto(foto)),
+                          ElementoColeccion.desdeLugar(
+                            _punto ?? Lugar.desdeFoto(foto),
+                          ),
                         ),
               );
             },

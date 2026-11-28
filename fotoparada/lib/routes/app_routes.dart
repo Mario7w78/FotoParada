@@ -77,9 +77,13 @@ class AppRoutes {
       reto: ModalRoute.of(context)!.settings.arguments as Reto,
     ),
     createChallenge: (context) => const CreateChallengeView(),
-    locationDetail: (context) => LocationDetailView(
-      nombreLugar: ModalRoute.of(context)!.settings.arguments as String,
-    ),
+    // Recibe un Lugar (fotos cercanas) o solo el nombre del lugar.
+    locationDetail: (context) {
+      final args = ModalRoute.of(context)!.settings.arguments;
+      return args is Lugar
+          ? LocationDetailView.desdeLugar(args)
+          : LocationDetailView(nombreLugar: args as String);
+    },
     // Recibe un Lugar (nombre + coordenadas) o solo el nombre del lugar.
     timeline: (context) {
       final args = ModalRoute.of(context)!.settings.arguments;
