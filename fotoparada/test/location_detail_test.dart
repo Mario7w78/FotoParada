@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/coleccion_model.dart';
 import 'package:fotoparada/models/foto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
 import 'package:fotoparada/routes/app_routes.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/foto_firestore_service.dart';
 import 'package:fotoparada/services/recuerdos_service.dart';
 import 'package:fotoparada/view/location_detail_view.dart';
 import 'package:fotoparada/viewmodel/location_detail_viewmodel.dart';
@@ -40,7 +41,9 @@ void main() {
         nombreLugar: lugar.nombre,
         latitud: lugar.latitud,
         longitud: lugar.longitud,
-        photoService: PhotoService(firestore: firestore),
+        fotoRepository: FotoRepository(
+          service: FotoFirestoreService(firestore: firestore),
+        ),
         recuerdosService: RecuerdosService(firestore: firestore),
       );
 
@@ -84,7 +87,9 @@ void main() {
 
     final viewModel = LocationDetailViewModel(
       nombreLugar: 'Plaza de Armas',
-      photoService: PhotoService(firestore: firestore),
+      fotoRepository: FotoRepository(
+        service: FotoFirestoreService(firestore: firestore),
+      ),
     );
     await esperar();
 

@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/foto_model.dart';
-import '../services/photo_service.dart';
+import '../repositories/foto_repository.dart';
+import '../services/photo_exception.dart';
 
 class FeedViewModel extends ChangeNotifier {
-  FeedViewModel({PhotoService? photoService})
-      : _photoService = photoService ?? PhotoService();
+  FeedViewModel({FotoRepository? fotoRepository})
+      : _fotoRepository = fotoRepository ?? FotoRepository();
 
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
 
   StreamSubscription<List<Foto>>? _suscripcion;
 
@@ -45,7 +46,7 @@ class FeedViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _suscripcion = _photoService.obtenerFotosPublicas().listen(
+    _suscripcion = _fotoRepository.obtenerFotosPublicas().listen(
       (fotos) {
         _fotos = fotos;
         _isLoading = false;

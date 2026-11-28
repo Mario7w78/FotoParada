@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
+import 'package:fotoparada/services/foto_firestore_service.dart';
 import 'package:fotoparada/services/imgbb_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:image/image.dart' as img;
 
 class FakeImgbb implements ImgbbService {
@@ -34,7 +36,7 @@ class FakeImgbb implements ImgbbService {
 void main() {
   late FakeFirebaseFirestore firestore;
   late FakeImgbb imgbb;
-  late PhotoService servicio;
+  late FotoRepository servicio;
   late Directory carpeta;
   late File archivo;
 
@@ -61,7 +63,10 @@ void main() {
   setUp(() async {
     firestore = FakeFirebaseFirestore();
     imgbb = FakeImgbb();
-    servicio = PhotoService(firestore: firestore, imgbb: imgbb);
+    servicio = FotoRepository(
+      service: FotoFirestoreService(firestore: firestore),
+      imgbb: imgbb,
+    );
     carpeta = await Directory.systemTemp.createTemp('fotos_test');
     archivo = File('${carpeta.path}/foto.jpg');
     final original = img.Image(width: 1500, height: 1000);

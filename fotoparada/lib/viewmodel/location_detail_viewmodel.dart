@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/foto_model.dart';
-import '../services/photo_service.dart';
+import '../repositories/foto_repository.dart';
 import '../services/recuerdos_service.dart';
 
 /// Define cómo se están ordenando las fotos actualmente.
@@ -12,9 +12,9 @@ class LocationDetailViewModel extends ChangeNotifier {
     required this.nombreLugar,
     this.latitud,
     this.longitud,
-    PhotoService? photoService,
+    FotoRepository? fotoRepository,
     this._recuerdosService,
-  })  : _photoService = photoService ?? PhotoService() {
+  })  : _fotoRepository = fotoRepository ?? FotoRepository() {
     _cargarFotos();
   }
 
@@ -25,7 +25,7 @@ class LocationDetailViewModel extends ChangeNotifier {
   final double? latitud;
   final double? longitud;
 
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final RecuerdosService? _recuerdosService;
 
   StreamSubscription<List<Foto>>? _fotosSubscription;
@@ -63,9 +63,9 @@ class LocationDetailViewModel extends ChangeNotifier {
     if (latitud != null && longitud != null) {
       stream = _fotosCercanas(latitud!, longitud!);
     } else if (_modoActual == ModoOrdenamiento.recientes) {
-      stream = _photoService.obtenerFotosPorLugarRecientes(nombreLugar);
+      stream = _fotoRepository.obtenerFotosPorLugarRecientes(nombreLugar);
     } else {
-      stream = _photoService.obtenerFotosPorLugarPopulares(nombreLugar);
+      stream = _fotoRepository.obtenerFotosPorLugarPopulares(nombreLugar);
     }
 
     _fotosSubscription = stream.listen(

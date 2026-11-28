@@ -3,22 +3,22 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:fotoparada/viewmodel/edit_photo_viewmodel.dart';
 
 import 'fotos_fakes.dart';
 
 void main() {
-  late FakePhotoService servicio;
+  late FakeFotoRepository servicio;
   late FakeGeocoding geocoding;
   late EditPhotoViewModel viewModel;
 
   setUp(() {
-    servicio = FakePhotoService();
+    servicio = FakeFotoRepository();
     geocoding = FakeGeocoding();
     viewModel = EditPhotoViewModel(
       foto: crearFoto(),
-      photoService: servicio,
+      fotoRepository: servicio,
       geocodingService: geocoding,
     );
   });
@@ -40,7 +40,7 @@ void main() {
       for (final cambio in cambios) {
         final nuevo = EditPhotoViewModel(
           foto: crearFoto(),
-          photoService: servicio,
+          fotoRepository: servicio,
           geocodingService: geocoding,
         );
         cambio(nuevo);

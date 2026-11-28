@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
 import 'package:fotoparada/routes/app_routes.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:fotoparada/view/edit_photo_view.dart';
 import 'package:fotoparada/view/my_photos_view.dart';
 import 'package:fotoparada/view/widgets/foto_widgets.dart';
@@ -28,11 +28,11 @@ void usarPantallaGrande(WidgetTester tester) {
 
 void main() {
   group('EditPhotoView', () {
-    late FakePhotoService servicio;
+    late FakeFotoRepository servicio;
 
     Future<void> abrir(WidgetTester tester, {Foto? fotoInicial}) async {
       usarPantallaGrande(tester);
-      servicio = FakePhotoService();
+      servicio = FakeFotoRepository();
       final foto = fotoInicial ?? crearFoto();
       await tester.pumpWidget(
         MaterialApp(
@@ -46,7 +46,7 @@ void main() {
                       foto: foto,
                       viewModel: EditPhotoViewModel(
                         foto: foto,
-                        photoService: servicio,
+                        fotoRepository: servicio,
                         geocodingService: FakeGeocoding(),
                       ),
                     ),
@@ -240,16 +240,16 @@ void main() {
   });
 
   group('MyPhotosView', () {
-    late FakePhotoService servicio;
+    late FakeFotoRepository servicio;
 
     Future<void> abrir(WidgetTester tester) async {
       usarPantallaGrande(tester);
-      servicio = FakePhotoService();
+      servicio = FakeFotoRepository();
       await tester.pumpWidget(
         MaterialApp(
           home: MyPhotosView(
             viewModel: MyPhotosViewModel(
-              photoService: servicio,
+              fotoRepository: servicio,
               authService: FakeAuth('usuario1'),
             ),
           ),

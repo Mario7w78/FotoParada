@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:fotoparada/viewmodel/my_photos_viewmodel.dart';
 
 import 'fotos_fakes.dart';
 
 void main() {
-  late FakePhotoService servicio;
+  late FakeFotoRepository servicio;
   late MyPhotosViewModel viewModel;
 
   Future<void> emitir(List<Foto> fotos) async {
@@ -17,9 +17,9 @@ void main() {
   }
 
   setUp(() {
-    servicio = FakePhotoService();
+    servicio = FakeFotoRepository();
     viewModel = MyPhotosViewModel(
-      photoService: servicio,
+      fotoRepository: servicio,
       authService: FakeAuth('usuario1'),
     );
   });
@@ -88,7 +88,7 @@ void main() {
 
     test('sin sesión informa el error y no consulta', () {
       viewModel = MyPhotosViewModel(
-        photoService: servicio,
+        fotoRepository: servicio,
         authService: FakeAuth(null),
       );
       viewModel.iniciar();

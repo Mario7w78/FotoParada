@@ -8,11 +8,12 @@ import 'package:fotoparada/models/coleccion_model.dart';
 import 'package:fotoparada/models/comentario_model.dart';
 import 'package:fotoparada/models/reaccion_model.dart';
 import 'package:fotoparada/models/reto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
 import 'package:fotoparada/services/challenge_service.dart';
 import 'package:fotoparada/services/coleccion_service.dart';
+import 'package:fotoparada/services/foto_firestore_service.dart';
 import 'package:fotoparada/services/interaccion_exception.dart';
 import 'package:fotoparada/services/interaction_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
 import 'package:fotoparada/services/recuerdos_exception.dart';
 import 'package:fotoparada/viewmodel/challenge_detail_viewmodel.dart';
 import 'package:fotoparada/viewmodel/collection_detail_viewmodel.dart';
@@ -314,7 +315,9 @@ void main() {
       final viewModel = CollectionDetailViewModel(
         coleccion: coleccion,
         coleccionService: servicio,
-        photoService: PhotoService(firestore: firestore),
+        fotoRepository: FotoRepository(
+          service: FotoFirestoreService(firestore: firestore),
+        ),
         authService: auth,
       )..iniciar();
       await pausa();
@@ -385,7 +388,9 @@ void main() {
           fechaFin: DateTime(2100),
         ),
         challengeService: RetosLentos(servidor),
-        photoService: PhotoService(firestore: FakeFirebaseFirestore()),
+        fotoRepository: FotoRepository(
+          service: FotoFirestoreService(firestore: FakeFirebaseFirestore()),
+        ),
         authService: auth,
       );
 
@@ -418,7 +423,9 @@ void main() {
       final viewModel = ChallengeDetailViewModel(
         reto: reto,
         challengeService: servicio,
-        photoService: PhotoService(firestore: FakeFirebaseFirestore()),
+        fotoRepository: FotoRepository(
+          service: FotoFirestoreService(firestore: FakeFirebaseFirestore()),
+        ),
         authService: auth,
       )..iniciar();
       servicio.participantes.add([]);

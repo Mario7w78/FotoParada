@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/services/imgbb_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 

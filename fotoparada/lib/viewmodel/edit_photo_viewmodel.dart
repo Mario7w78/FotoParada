@@ -1,20 +1,21 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/foto_model.dart';
+import '../repositories/foto_repository.dart';
 import '../services/geocoding_service.dart';
-import '../services/photo_service.dart';
+import '../services/photo_exception.dart';
 
 class EditPhotoViewModel extends ChangeNotifier {
   EditPhotoViewModel({
     required Foto foto,
-    PhotoService? photoService,
+    FotoRepository? fotoRepository,
     GeocodingService? geocodingService,
   })  : _original = foto,
         _foto = foto,
-        _photoService = photoService ?? PhotoService(),
+        _fotoRepository = fotoRepository ?? FotoRepository(),
         _geocodingService = geocodingService ?? GeocodingService();
 
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final GeocodingService _geocodingService;
 
   Foto _original;
@@ -113,7 +114,7 @@ class EditPhotoViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _photoService.actualizarFoto(_foto.id, _camposCambiados);
+      await _fotoRepository.actualizarFoto(_foto.id, _camposCambiados);
       _foto = _foto.copyWith(
         titulo: _foto.titulo.trim(),
         descripcion: _foto.descripcion.trim(),
@@ -142,7 +143,7 @@ class EditPhotoViewModel extends ChangeNotifier {
 
     try {
       // Se borra la foto guardada, no el borrador con cambios sin guardar.
-      await _photoService.eliminarFoto(_original);
+      await _fotoRepository.eliminarFoto(_original);
       return true;
     } on PhotoException catch (e) {
       _errorMessage = e.message;

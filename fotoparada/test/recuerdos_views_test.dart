@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/coleccion_model.dart';
 import 'package:fotoparada/models/foto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
 import 'package:fotoparada/services/coleccion_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/foto_firestore_service.dart';
 import 'package:fotoparada/services/recuerdos_service.dart';
 import 'package:fotoparada/view/collection_detail_view.dart';
 import 'package:fotoparada/view/collections_view.dart';
@@ -210,7 +211,9 @@ void main() {
             viewModel: CollectionDetailViewModel(
               coleccion: coleccion,
               coleccionService: colecciones,
-              photoService: PhotoService(firestore: firestore),
+              fotoRepository: FotoRepository(
+                service: FotoFirestoreService(firestore: firestore),
+              ),
               authService: auth,
             ),
           ),

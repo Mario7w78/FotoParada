@@ -5,9 +5,9 @@ import 'package:flutter/foundation.dart';
 import '../Utils/cambios_optimistas.dart';
 import '../models/coleccion_model.dart';
 import '../models/foto_model.dart';
+import '../repositories/foto_repository.dart';
 import '../services/auth_service.dart';
 import '../services/coleccion_service.dart';
-import '../services/photo_service.dart';
 import '../services/recuerdos_exception.dart';
 
 /// Integrante 4 - Contenido de una colección: lugares y fotos guardados.
@@ -15,14 +15,14 @@ class CollectionDetailViewModel extends ChangeNotifier {
   CollectionDetailViewModel({
     required this._coleccion,
     ColeccionService? coleccionService,
-    PhotoService? photoService,
+    FotoRepository? fotoRepository,
     AuthService? authService,
   })  : _service = coleccionService ?? ColeccionService(),
-        _photoService = photoService ?? PhotoService(),
+        _fotoRepository = fotoRepository ?? FotoRepository(),
         _authService = authService ?? AuthService();
 
   final ColeccionService _service;
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final AuthService _authService;
 
   StreamSubscription<List<ElementoColeccion>>? _subElementos;
@@ -248,7 +248,7 @@ class CollectionDetailViewModel extends ChangeNotifier {
   Future<Foto?> abrirFoto(ElementoColeccion elemento) async {
     _errorAccion = null;
     try {
-      final foto = await _photoService.obtenerPorId(elemento.fotoId);
+      final foto = await _fotoRepository.obtenerPorId(elemento.fotoId);
       if (foto == null) {
         _errorAccion = 'Esta foto ya no existe. Puedes quitarla de la colección.';
       }

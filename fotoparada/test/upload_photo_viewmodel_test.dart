@@ -4,10 +4,11 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fotoparada/models/foto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
 import 'package:fotoparada/services/auth_service.dart';
 import 'package:fotoparada/services/foto_metadata_service.dart';
 import 'package:fotoparada/services/geocoding_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
+import 'package:fotoparada/services/photo_exception.dart';
 import 'package:fotoparada/viewmodel/upload_photo_viewmodel.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -87,7 +88,7 @@ class _FakeMetadata implements FotoMetadataService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakePhotoService implements PhotoService {
+class _FakeFotoRepository implements FotoRepository {
   int subidas = 0;
   Object? error;
   Completer<void>? pendiente;
@@ -143,13 +144,13 @@ void main() {
   late _FakePicker picker;
   late _FakeGeocoding geocoding;
   late _FakeMetadata metadata;
-  late _FakePhotoService fotos;
+  late _FakeFotoRepository fotos;
   late UploadPhotoViewModel viewModel;
 
   UploadPhotoViewModel crear({String? uid = 'usuario1'}) {
     return UploadPhotoViewModel(
       imagePicker: picker,
-      photoService: fotos,
+      fotoRepository: fotos,
       authService: _FakeAuth(uid),
       geocodingService: geocoding,
       metadataService: metadata,
@@ -160,7 +161,7 @@ void main() {
     picker = _FakePicker();
     geocoding = _FakeGeocoding();
     metadata = _FakeMetadata();
-    fotos = _FakePhotoService();
+    fotos = _FakeFotoRepository();
     viewModel = crear();
   });
 

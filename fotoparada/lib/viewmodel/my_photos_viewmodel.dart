@@ -3,15 +3,16 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/foto_model.dart';
+import '../repositories/foto_repository.dart';
 import '../services/auth_service.dart';
-import '../services/photo_service.dart';
+import '../services/photo_exception.dart';
 
 class MyPhotosViewModel extends ChangeNotifier {
-  MyPhotosViewModel({PhotoService? photoService, AuthService? authService})
-      : _photoService = photoService ?? PhotoService(),
+  MyPhotosViewModel({FotoRepository? fotoRepository, AuthService? authService})
+      : _fotoRepository = fotoRepository ?? FotoRepository(),
         _authService = authService ?? AuthService();
 
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final AuthService _authService;
 
   StreamSubscription<List<Foto>>? _suscripcion;
@@ -81,7 +82,7 @@ class MyPhotosViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _suscripcion = _photoService.obtenerMisFotos(uid).listen(
+    _suscripcion = _fotoRepository.obtenerMisFotos(uid).listen(
       (fotos) {
         _todas = fotos;
         _isLoading = false;
@@ -111,7 +112,7 @@ class MyPhotosViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _photoService.eliminarFoto(foto);
+      await _fotoRepository.eliminarFoto(foto);
       _todas = _todas.where((f) => f.id != foto.id).toList();
       return true;
     } on PhotoException catch (e) {

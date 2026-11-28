@@ -7,8 +7,9 @@ import 'package:latlong2/latlong.dart';
 import '../Utils/debounce.dart';
 import '../models/foto_model.dart';
 import '../models/geocoding_result.dart';
+import '../repositories/foto_repository.dart';
 import '../services/geocoding_service.dart';
-import '../services/photo_service.dart';
+import '../services/photo_exception.dart';
 
 /// Fotos tomadas en el mismo lugar, que el mapa dibuja como un solo marcador.
 class PuntoInteres {
@@ -21,12 +22,12 @@ class PuntoInteres {
 }
 
 class MapViewModel extends ChangeNotifier {
-  MapViewModel({PhotoService? photoService})
-    : _photoService = photoService ?? PhotoService() {
+  MapViewModel({FotoRepository? fotoRepository})
+    : _fotoRepository = fotoRepository ?? FotoRepository() {
     _escucharFotos();
   }
 
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   StreamSubscription<List<Foto>>? _suscripcion;
 
   List<Foto> _fotos = [];
@@ -109,8 +110,8 @@ class MapViewModel extends ChangeNotifier {
     _suscripcion?.cancel();
     _errorFotos = null;
     final consulta = _categoria == null
-        ? _photoService.obtenerFotosPublicas()
-        : _photoService.obtenerFotosPublicasPorCategoria(_categoria!);
+        ? _fotoRepository.obtenerFotosPublicas()
+        : _fotoRepository.obtenerFotosPublicasPorCategoria(_categoria!);
 
     _suscripcion = consulta.listen(
       (fotos) {

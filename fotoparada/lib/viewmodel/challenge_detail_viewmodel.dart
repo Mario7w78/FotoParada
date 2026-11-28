@@ -4,24 +4,24 @@ import 'package:flutter/foundation.dart';
 
 import '../models/foto_model.dart';
 import '../models/reto_model.dart';
+import '../repositories/foto_repository.dart';
 import '../services/auth_service.dart';
 import '../services/challenge_service.dart';
 import '../services/interaccion_exception.dart';
-import '../services/photo_service.dart';
 
 class ChallengeDetailViewModel extends ChangeNotifier {
   ChallengeDetailViewModel({
     required this.reto,
     ChallengeService? challengeService,
-    PhotoService? photoService,
+    FotoRepository? fotoRepository,
     AuthService? authService,
   })  : _challengeService = challengeService ?? ChallengeService(),
-        _photoService = photoService ?? PhotoService(),
+        _fotoRepository = fotoRepository ?? FotoRepository(),
         _authService = authService ?? AuthService();
 
   final Reto reto;
   final ChallengeService _challengeService;
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final AuthService _authService;
 
   StreamSubscription<List<ParticipacionReto>>? _suscripcion;
@@ -154,7 +154,7 @@ class ChallengeDetailViewModel extends ChangeNotifier {
 
     await Future.wait(faltantes.map((id) async {
       try {
-        final foto = await _photoService.obtenerPorId(id);
+        final foto = await _fotoRepository.obtenerPorId(id);
         if (foto != null) _fotos[id] = foto;
       } catch (_) {
         // Sin permiso (foto privada) o borrada: simplemente no se muestra.
@@ -170,7 +170,7 @@ class ChallengeDetailViewModel extends ChangeNotifier {
     if (uidActual == null) return const [];
 
     final enviadas = miParticipacion?.fotoIds.toSet() ?? const <String>{};
-    final mias = await _photoService.obtenerMisFotos(uidActual).first;
+    final mias = await _fotoRepository.obtenerMisFotos(uidActual).first;
     return mias
         .where((foto) => !enviadas.contains(foto.id))
         .map((foto) => (foto: foto, motivo: reto.motivoNoCumple(foto)))

@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:fotoparada/models/foto_model.dart';
+import 'package:fotoparada/repositories/foto_repository.dart';
 import 'package:fotoparada/services/auth_service.dart';
 import 'package:fotoparada/services/geocoding_service.dart';
-import 'package:fotoparada/services/photo_service.dart';
 
 const String urlImagenPrueba = 'https://i.ibb.co/abc/foto.jpg';
 const String urlMiniaturaPrueba = 'https://i.ibb.co/abc/foto-mini.jpg';
@@ -35,7 +35,7 @@ Foto crearFoto({
   );
 }
 
-class FakePhotoService implements PhotoService {
+class FakeFotoRepository implements FotoRepository {
   final misFotos = StreamController<List<Foto>>.broadcast();
   String? uidConsultado;
   int escuchas = 0;

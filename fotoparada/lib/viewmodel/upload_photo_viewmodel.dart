@@ -6,10 +6,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/foto_model.dart';
+import '../repositories/foto_repository.dart';
 import '../services/auth_service.dart';
 import '../services/foto_metadata_service.dart';
 import '../services/geocoding_service.dart';
-import '../services/photo_service.dart';
+import '../services/photo_exception.dart';
 
 enum OrigenImagen { camara, galeria }
 
@@ -18,18 +19,18 @@ enum OrigenUbicacion { foto, gps, manual }
 class UploadPhotoViewModel extends ChangeNotifier {
   UploadPhotoViewModel({
     ImagePicker? imagePicker,
-    PhotoService? photoService,
+    FotoRepository? fotoRepository,
     AuthService? authService,
     GeocodingService? geocodingService,
     FotoMetadataService? metadataService,
   })  : _imagePicker = imagePicker ?? ImagePicker(),
-        _photoService = photoService ?? PhotoService(),
+        _fotoRepository = fotoRepository ?? FotoRepository(),
         _authService = authService ?? AuthService(),
         _geocodingService = geocodingService ?? GeocodingService(),
         _metadataService = metadataService ?? FotoMetadataService();
 
   final ImagePicker _imagePicker;
-  final PhotoService _photoService;
+  final FotoRepository _fotoRepository;
   final AuthService _authService;
   final GeocodingService _geocodingService;
   final FotoMetadataService _metadataService;
@@ -262,7 +263,7 @@ class UploadPhotoViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _photoService.subirFoto(
+      await _fotoRepository.subirFoto(
         archivo: _imagen!,
         uid: uid!,
         titulo: _titulo.trim(),

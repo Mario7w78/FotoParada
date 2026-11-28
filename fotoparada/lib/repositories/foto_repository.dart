@@ -4,33 +4,23 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/foto_model.dart';
-import 'imagen_compresor.dart';
-import 'imgbb_service.dart';
+import '../services/foto_firestore_service.dart';
+import '../services/imagen_compresor.dart';
+import '../services/imgbb_service.dart';
+import '../services/photo_exception.dart';
 
-class PhotoException implements Exception {
-  const PhotoException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-class PhotoService {
-  PhotoService({
-    FirebaseFirestore? firestore,
+class FotoRepository {
+  FotoRepository({
+    FotoFirestoreService? service,
     ImagenCompresor? compresor,
     ImgbbService? imgbb,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+  })  : _service = service ?? FotoFirestoreService(),
         _compresor = compresor ?? ImagenCompresor(),
         _imgbb = imgbb ?? ImgbbService();
 
-  final FirebaseFirestore _firestore;
+  final FotoFirestoreService _service;
   final ImagenCompresor _compresor;
   final ImgbbService _imgbb;
-
-  CollectionReference<Map<String, dynamic>> get _fotos =>
-      _firestore.collection('fotos');
 
   /// Comprime [archivo], lo sube a ImgBB y guarda sus URLs en un documento
   /// nuevo de "fotos". Si la subida falla no se crea el documento.
@@ -53,10 +43,9 @@ class PhotoService {
 
     final bytes = await _comprimir(archivo);
     final subida = await _imgbb.subirImagen(bytes);
-    final documento = _fotos.doc();
 
     final foto = Foto(
-      id: documento.id,
+      id: _service.nuevoId(),
       uid: uid,
       urlImagen: subida.url,
       urlMiniatura: subida.urlMiniatura,
@@ -72,30 +61,69 @@ class PhotoService {
       privacidad: privacidad,
     );
 
-    try {
-      await documento.set({
-        ...foto.toMap(),
-        // La hora del servidor evita que el reloj del teléfono altere el orden.
-        'fechaSubida': FieldValue.serverTimestamp(),
-      });
-      return foto;
-    } on FirebaseException catch (e) {
-      throw PhotoException(_mapError(e));
-    }
+    await _traducir(() => _service.crear(foto.id, foto.toMap()));
+    return foto;
   }
 
   Stream<List<Foto>> obtenerMisFotos(String uid) {
-    return _escuchar(
-      _fotos.where('uid', isEqualTo: uid),
-    );
+    return _convertir(_service.escucharPorUsuario(uid));
   }
 
   Stream<List<Foto>> obtenerFotosPublicas({int limite = 30}) {
-    return _escuchar(
-      _fotos
-          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
-          .limit(limite),
+    return _convertir(
+      _service.escucharPorPrivacidad(
+        PrivacidadFoto.publica.name,
+        limite: limite,
+      ),
     );
+  }
+
+  Stream<List<Foto>> obtenerFotosPublicasPorCategoria(
+    CategoriaFoto categoria, {
+    int limite = 30,
+  }) {
+    return _convertir(
+      _service.escucharPorPrivacidad(
+        PrivacidadFoto.publica.name,
+        categoria: categoria.name,
+        limite: limite,
+      ),
+    );
+  }
+
+  /// Fotos públicas de [nombreLugar], las más recientes primero.
+  Stream<List<Foto>> obtenerFotosPorLugarRecientes(
+    String nombreLugar, {
+    int limite = 30,
+  }) {
+    return _convertir(
+      _service.escucharPorPrivacidad(
+        PrivacidadFoto.publica.name,
+        nombreLugar: nombreLugar,
+        limite: limite,
+      ),
+    );
+  }
+
+  /// Fotos públicas de [nombreLugar], ordenadas de más a menos likes.
+  Stream<List<Foto>> obtenerFotosPorLugarPopulares(
+    String nombreLugar, {
+    int limite = 30,
+  }) {
+    return _convertir(
+      _service.escucharPopulares(
+        PrivacidadFoto.publica.name,
+        nombreLugar: nombreLugar,
+        limite: limite,
+      ),
+    );
+  }
+
+  Future<Foto?> obtenerPorId(String id) {
+    return _traducir(() async {
+      final doc = await _service.obtener(id);
+      return doc.exists ? Foto.fromFirestore(doc) : null;
+    });
   }
 
   /// Guarda solo [campos] (ver [Foto.camposCambiados]) para no pisar cambios
@@ -103,21 +131,13 @@ class PhotoService {
   Future<void> actualizarFoto(String id, Map<String, dynamic> campos) async {
     if (campos.isEmpty) return;
 
-    try {
-      await _fotos.doc(id).update(campos);
-    } on FirebaseException catch (e) {
-      throw PhotoException(_mapError(e));
-    }
+    await _traducir(() => _service.actualizar(id, campos));
   }
 
   /// Borra solo el documento. La imagen sigue en ImgBB, que no permite
   /// borrarla por API: se puede quitar a mano desde [Foto.urlEliminar].
-  Future<void> eliminarFoto(Foto foto) async {
-    try {
-      await _fotos.doc(foto.id).delete();
-    } on FirebaseException catch (e) {
-      throw PhotoException(_mapError(e));
-    }
+  Future<void> eliminarFoto(Foto foto) {
+    return _traducir(() => _service.eliminar(foto.id));
   }
 
   Future<Uint8List> _comprimir(File archivo) async {
@@ -135,67 +155,18 @@ class PhotoService {
     }
   }
 
-  Stream<List<Foto>> _escuchar(Query<Map<String, dynamic>> consulta) {
-    return consulta
-        .orderBy('fechaSubida', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map(Foto.fromFirestore).toList())
-        .handleError((Object error) {
-      if (error is FirebaseException) {
-        throw PhotoException(_mapError(error));
-      }
-      throw error;
-    });
-
-  }
-
-  // Detalle 
-  Future<Foto?> obtenerPorId(String id) async {
+  Future<T> _traducir<T>(Future<T> Function() operacion) async {
     try {
-      final doc = await _fotos.doc(id).get();
-      return doc.exists ? Foto.fromFirestore(doc) : null;
+      return await operacion();
     } on FirebaseException catch (e) {
       throw PhotoException(_mapError(e));
     }
   }
 
-// Por categoría (reutiliza _escuchar)
-  Stream<List<Foto>> obtenerFotosPublicasPorCategoria(
-      CategoriaFoto categoria, {
-        int limite = 30,
-      }) {
-    return _escuchar(
-      _fotos
-          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
-          .where('categoria', isEqualTo: categoria.name)
-          .limit(limite),
-    );
-  }
-
-  // =========================================================================
-  // Consultas por Ubicación
-  // =========================================================================
-
-  /// Retorna un stream de fotos públicas filtradas por [nombreLugar],
-  /// ordenadas por fecha de subida (más recientes primero).
-  Stream<List<Foto>> obtenerFotosPorLugarRecientes(String nombreLugar, {int limite = 30}) {
-    return _escuchar(
-      _fotos
-          .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
-          .where('nombreLugar', isEqualTo: nombreLugar)
-          .limit(limite),
-    );
-  }
-
-  /// Retorna un stream de fotos públicas filtradas por [nombreLugar],
-  /// ordenadas por la cantidad de likes (mayor a menor).
-  Stream<List<Foto>> obtenerFotosPorLugarPopulares(String nombreLugar, {int limite = 30}) {
-    return _fotos
-        .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
-        .where('nombreLugar', isEqualTo: nombreLugar)
-        .orderBy('likes', descending: true) // Ordenamos por likes de mayor a menor
-        .limit(limite)
-        .snapshots()
+  Stream<List<Foto>> _convertir(
+    Stream<QuerySnapshot<Map<String, dynamic>>> consulta,
+  ) {
+    return consulta
         .map((snapshot) => snapshot.docs.map(Foto.fromFirestore).toList())
         .handleError((Object error) {
       if (error is FirebaseException) {

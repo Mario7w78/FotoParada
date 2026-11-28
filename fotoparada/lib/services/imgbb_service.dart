@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
-import 'photo_service.dart';
+import 'photo_exception.dart';
 
 const String mensajeFaltaClaveImgbb = 'Falta IMGBB_API_KEY. Revisa claves.json';
 

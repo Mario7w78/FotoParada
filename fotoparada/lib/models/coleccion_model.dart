@@ -308,7 +308,7 @@ class ElementoColeccion {
 }
 
 /// Un punto del mapa identificado por su nombre, igual que lo agrupan
-/// LocationDetailView y las consultas por ubicación de PhotoService.
+/// LocationDetailView y las consultas por ubicación de FotoRepository.
 class Lugar {
   const Lugar({
     required this.nombre,
