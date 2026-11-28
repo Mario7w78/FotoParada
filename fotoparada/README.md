@@ -39,9 +39,19 @@ Colecciones que usa la app:
 | `colecciones` | Colecciones del usuario: "Quiero visitar", "Mis viajes" (id `{uid}_quiero_visitar` / `{uid}_mis_viajes`) y personalizadas. Guarda `cantidad` y `portadaUrl`. |
 | `colecciones/{id}/elementos/{elementoId}` | Fotos (`foto_{fotoId}`) o lugares (`lugar_{nombre}`) guardados, con nota personal. |
 
-La línea de tiempo y la comparación de fotos (Integrante 4) leen `fotos` solo
-con filtros de igualdad (`privacidad` + `nombreLugar`, `uid` + `nombreLugar`) y
-ordenan en el teléfono, así que **no necesitan índices compuestos**.
+La línea de tiempo y la comparación de fotos (Integrante 4) buscan en `fotos`
+por nombre de lugar y por cercanía (un recuadro de latitud y longitud), y
+ordenan en el teléfono. La búsqueda por cercanía necesita **dos índices
+compuestos** en la colección `fotos` (Firestore Database → Índices), ambos con
+todos los campos en orden ascendente:
+
+| Campos | Para |
+|---|---|
+| `privacidad`, `latitud`, `longitud` | Fotos públicas cercanas |
+| `uid`, `latitud`, `longitud` | Fotos propias cercanas |
+
+Sin ellos la línea de tiempo muestra "Falta crear el índice de Firestore"; la
+consola de depuración trae el enlace para crearlos.
 
 ## Getting Started
 

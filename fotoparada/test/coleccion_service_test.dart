@@ -197,6 +197,39 @@ void main() {
     });
   });
 
+  group('lugares sin nombre', () {
+    Lugar sinNombre(LatLng punto) => Lugar.desdeFoto(
+          fotoEn(punto: punto).copyWith(titulo: '', nombreLugar: ''),
+        );
+
+    test('dos puntos distintos no comparten id', () {
+      expect(
+        ElementoColeccion.desdeLugar(sinNombre(plazaDeArmas)).id,
+        isNot(
+          ElementoColeccion.desdeLugar(
+            sinNombre(const LatLng(-13.5170, -71.9785)),
+          ).id,
+        ),
+      );
+    });
+
+    test('el mismo punto conserva el id', () {
+      expect(
+        ElementoColeccion.desdeLugar(sinNombre(plazaDeArmas)).id,
+        ElementoColeccion.desdeLugar(sinNombre(plazaDeArmas)).id,
+      );
+    });
+
+    test('un lugar con nombre no depende de las coordenadas', () {
+      expect(
+        ElementoColeccion.desdeLugar(
+          Lugar.desdeFoto(fotoEn(punto: const LatLng(-12.0465, -77.0429))),
+        ).id,
+        'lugar_plaza_de_armas',
+      );
+    });
+  });
+
   group('RecuerdosService.fotosDelLugar', () {
     Future<void> guardar(Foto foto) =>
         firestore.collection('fotos').doc(foto.id).set(foto.toMap());
@@ -246,6 +279,38 @@ void main() {
           .first;
 
       expect(fotos.map((f) => f.id).toSet(), {'cerca', 'por-nombre'});
+    });
+
+    test('encuentra la foto cercana aunque haya cientos de fotos lejanas',
+        () async {
+      // Más que el tope por consulta, repartidas fuera del radio: unas lejos
+      // en latitud y otras en la misma latitud pero lejos en longitud.
+      for (var i = 0; i < 125; i++) {
+        await guardar(fotoEn(id: 'norte$i', uid: 'u2',
+                punto: const LatLng(10, -77.0428))
+            .copyWith(nombreLugar: ''));
+        await guardar(fotoEn(id: 'este$i', uid: 'u2',
+                punto: const LatLng(-12.0464, 30))
+            .copyWith(nombreLugar: ''));
+      }
+      await guardar(fotoEn(id: 'zz-cerca', uid: 'u2',
+              punto: const LatLng(-12.0455, -77.0428))
+          .copyWith(nombreLugar: ''));
+      await guardar(fotoEn(id: 'zz-mia', uid: 'u1',
+              punto: const LatLng(-12.0464, -77.0415),
+              privacidad: PrivacidadFoto.privada)
+          .copyWith(nombreLugar: ''));
+
+      final fotos = await RecuerdosService(firestore: firestore)
+          .fotosDelLugar(
+            'Cerca de «Mural»',
+            uid: 'u1',
+            latitud: plazaDeArmas.latitude,
+            longitud: plazaDeArmas.longitude,
+          )
+          .first;
+
+      expect(fotos.map((f) => f.id).toSet(), {'zz-cerca', 'zz-mia'});
     });
 
     test('sin sesión solo trae públicas', () async {

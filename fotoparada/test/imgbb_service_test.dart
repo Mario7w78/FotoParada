@@ -24,6 +24,39 @@ Matcher errorCon(String texto) => throwsA(
     );
 
 void main() {
+  group('límite de tamaño', () {
+    late int peticiones;
+    late ImgbbService servicio;
+
+    setUp(() {
+      peticiones = 0;
+      servicio = ImgbbService(
+        apiKey: 'clave',
+        client: MockClient((_) async {
+          peticiones++;
+          return json({
+            'data': {'url': 'https://i.ibb.co/abc/foto.jpg'},
+            'success': true,
+            'status': 200,
+          }, 200);
+        }),
+      );
+    });
+
+    test('una imagen justo en el límite se envía', () async {
+      await servicio.subirImagen(Uint8List(maxBytesImgbb));
+      expect(peticiones, 1);
+    });
+
+    test('una imagen que lo supera no se envía', () async {
+      await expectLater(
+        servicio.subirImagen(Uint8List(maxBytesImgbb + 1)),
+        errorCon(mensajeImagenSuperaImgbb),
+      );
+      expect(peticiones, 0);
+    });
+  });
+
   group('subirImagen', () {
     test('envía la imagen como archivo y devuelve sus URLs', () async {
       late http.Request recibida;

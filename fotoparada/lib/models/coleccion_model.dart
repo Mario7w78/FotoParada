@@ -189,13 +189,26 @@ class ElementoColeccion {
   /// no se repite dentro de la colección.
   static String idParaFoto(String fotoId) => 'foto_$fotoId';
 
-  static String idParaLugar(String nombreLugar) {
+  /// Los lugares sin nombre ("Cerca de «título»") pueden repetir el texto en
+  /// sitios distintos, así que su id incluye además las coordenadas.
+  static String idParaLugar(
+    String nombreLugar, {
+    double? latitud,
+    double? longitud,
+  }) {
     final limpio = nombreLugar
         .trim()
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9áéíóúüñ]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
-    return 'lugar_${limpio.isEmpty ? 'sin_nombre' : limpio}';
+    final id = 'lugar_${limpio.isEmpty ? 'sin_nombre' : limpio}';
+
+    final sinNombre =
+        limpio.isEmpty || nombreLugar.startsWith(Lugar.prefijoSinNombre);
+    if (!sinNombre || latitud == null || longitud == null) return id;
+    // 4 decimales (~11 m): el mismo punto conserva el id.
+    return '${id}_${latitud.toStringAsFixed(4)}_'
+        '${longitud.toStringAsFixed(4)}';
   }
 
   factory ElementoColeccion.desdeFoto(Foto foto, {String nota = ''}) {
@@ -216,7 +229,11 @@ class ElementoColeccion {
 
   factory ElementoColeccion.desdeLugar(Lugar lugar, {String nota = ''}) {
     return ElementoColeccion(
-      id: idParaLugar(lugar.nombre),
+      id: idParaLugar(
+        lugar.nombre,
+        latitud: lugar.latitud,
+        longitud: lugar.longitud,
+      ),
       tipo: TipoElemento.lugar,
       titulo: lugar.nombre,
       nombreLugar: lugar.nombre,
@@ -269,7 +286,7 @@ class ElementoColeccion {
         nombre: nombreLugar.isNotEmpty
             ? nombreLugar
             : esFoto
-                ? 'Cerca de «$titulo»'
+                ? '${Lugar.prefijoSinNombre}«$titulo»'
                 : titulo,
         latitud: latitud,
         longitud: longitud,
@@ -287,6 +304,9 @@ class Lugar {
     this.urlImagen = '',
   });
 
+  /// Comienzo del nombre que se inventa para un punto que no tiene uno.
+  static const String prefijoSinNombre = 'Cerca de ';
+
   final String nombre;
   final double latitud;
   final double longitud;
@@ -297,8 +317,9 @@ class Lugar {
   factory Lugar.desdeFoto(Foto foto) {
     final titulo = foto.titulo.isEmpty ? 'esta foto' : '«${foto.titulo}»';
     return Lugar(
-      nombre:
-          foto.nombreLugar.isEmpty ? 'Cerca de $titulo' : foto.nombreLugar,
+      nombre: foto.nombreLugar.isEmpty
+          ? '$prefijoSinNombre$titulo'
+          : foto.nombreLugar,
       latitud: foto.latitud,
       longitud: foto.longitud,
       urlImagen:

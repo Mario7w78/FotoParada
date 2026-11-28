@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/foto_model.dart';
@@ -8,9 +10,9 @@ import 'recuerdos_exception.dart';
 
 /// Integrante 4 - Fotos de un lugar para la línea de tiempo y la comparación.
 ///
-/// Solo usa consultas de igualdad (sin orderBy) para no depender de índices
-/// compuestos; el orden por fecha de toma y el filtro por distancia se hacen
-/// en el teléfono.
+/// La búsqueda por cercanía filtra en Firestore por un recuadro de latitud y
+/// longitud, y necesita dos índices compuestos (ver README). El radio exacto y
+/// el orden por fecha de toma se resuelven en el teléfono.
 class RecuerdosService {
   RecuerdosService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -27,6 +29,10 @@ class RecuerdosService {
   /// se busca por coordenadas.
   static const double radioMetros = 200;
 
+  /// Algo menos que lo que mide un grado de latitud (~111 320 m), para que el
+  /// recuadro de búsqueda nunca quede más chico que el radio.
+  static const double _metrosPorGrado = 111000;
+
   /// Fotos públicas de [nombreLugar] más las del usuario [uid] (también las
   /// privadas o de amigos: son sus propios recuerdos). Sin duplicados y de la
   /// más antigua a la más reciente.
@@ -40,8 +46,9 @@ class RecuerdosService {
     double? latitud,
     double? longitud,
   }) {
-    final porCercania = latitud != null && longitud != null;
-    final centro = porCercania ? LatLng(latitud, longitud) : null;
+    final centro = latitud != null && longitud != null
+        ? LatLng(latitud, longitud)
+        : null;
 
     final fuentes = <Query<Map<String, dynamic>>>[
       if (nombreLugar.isNotEmpty) ...[
@@ -55,14 +62,17 @@ class RecuerdosService {
               .where('nombreLugar', isEqualTo: nombreLugar)
               .limit(limitePorConsulta),
       ],
-      // Firestore no filtra por distancia: se traen las públicas (y las
-      // propias) y se filtran en el teléfono.
-      if (porCercania) ...[
-        _fotos
-            .where('privacidad', isEqualTo: PrivacidadFoto.publica.name)
-            .limit(limitePorConsulta),
+      // Firestore no filtra por radio: se pide el recuadro que lo contiene y
+      // las esquinas se descartan en el teléfono. El tope se aplica así solo a
+      // las fotos de la zona.
+      if (centro != null) ...[
+        _enRecuadro(
+          _fotos.where('privacidad', isEqualTo: PrivacidadFoto.publica.name),
+          centro,
+        ).limit(limitePorConsulta),
         if (uid != null)
-          _fotos.where('uid', isEqualTo: uid).limit(limitePorConsulta),
+          _enRecuadro(_fotos.where('uid', isEqualTo: uid), centro)
+              .limit(limitePorConsulta),
       ],
     ];
 
@@ -74,6 +84,33 @@ class RecuerdosService {
           (nombreLugar.isNotEmpty && foto.nombreLugar == nombreLugar) ||
           (centro != null && estaCerca(foto, centro)),
     );
+  }
+
+  /// Limita [consulta] al cuadrado de lado `2 * radioMetros` alrededor de
+  /// [centro].
+  static Query<Map<String, dynamic>> _enRecuadro(
+    Query<Map<String, dynamic>> consulta,
+    LatLng centro,
+  ) {
+    const margenLatitud = radioMetros / _metrosPorGrado;
+    // Un grado de longitud se acorta al alejarse del ecuador.
+    final coseno = math.cos(centro.latitude * math.pi / 180).abs();
+    final margenLongitud = margenLatitud / math.max(coseno, 0.01);
+
+    return consulta
+        .where(
+          'latitud',
+          isGreaterThanOrEqualTo: centro.latitude - margenLatitud,
+        )
+        .where('latitud', isLessThanOrEqualTo: centro.latitude + margenLatitud)
+        .where(
+          'longitud',
+          isGreaterThanOrEqualTo: centro.longitude - margenLongitud,
+        )
+        .where(
+          'longitud',
+          isLessThanOrEqualTo: centro.longitude + margenLongitud,
+        );
   }
 
   static bool estaCerca(Foto foto, LatLng centro) {
@@ -110,6 +147,8 @@ class RecuerdosService {
     }
 
     void reportarError(Object error) {
+      // El mensaje original trae el enlace para crear un índice que falte.
+      debugPrint('RecuerdosService: $error');
       controller.addError(
         error is FirebaseException
             ? RecuerdosException.desdeFirebase(error)

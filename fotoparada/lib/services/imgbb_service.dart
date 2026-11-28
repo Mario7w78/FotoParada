@@ -9,6 +9,12 @@ import 'photo_service.dart';
 
 const String mensajeFaltaClaveImgbb = 'Falta IMGBB_API_KEY. Revisa claves.json';
 
+/// Tamaño máximo de imagen que acepta la API de ImgBB (32 MB).
+const int maxBytesImgbb = 32 * 1000 * 1000;
+
+const String mensajeImagenSuperaImgbb =
+    'La imagen supera el límite de 32 MB. Prueba con otra foto.';
+
 /// URLs que devuelve ImgBB tras subir una imagen.
 class ImagenSubida {
   const ImagenSubida({
@@ -41,10 +47,14 @@ class ImgbbService {
 
   bool get tieneClave => _apiKey.isNotEmpty;
 
-  /// Sube [bytes] sin fecha de caducidad y devuelve sus URLs.
+  /// Sube [bytes] sin fecha de caducidad y devuelve sus URLs. Si pesan más de
+  /// [maxBytesImgbb] falla sin enviar nada.
   Future<ImagenSubida> subirImagen(Uint8List bytes) async {
     if (!tieneClave) {
       throw const PhotoException(mensajeFaltaClaveImgbb);
+    }
+    if (bytes.length > maxBytesImgbb) {
+      throw const PhotoException(mensajeImagenSuperaImgbb);
     }
 
     final peticion = http.MultipartRequest(

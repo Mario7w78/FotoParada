@@ -190,13 +190,38 @@ class _DialogoColeccionState extends State<_DialogoColeccion> {
 
 /// Pide una nota corta para un elemento guardado. Null si se cancela.
 Future<String?> pedirNota(BuildContext context, String notaActual) {
-  final controller = TextEditingController(text: notaActual);
   return showDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => _DialogoNota(notaInicial: notaActual),
+  );
+}
+
+/// El diálogo es dueño del controlador: así se libera cuando sale de pantalla,
+/// no mientras todavía se está cerrando.
+class _DialogoNota extends StatefulWidget {
+  const _DialogoNota({required this.notaInicial});
+
+  final String notaInicial;
+
+  @override
+  State<_DialogoNota> createState() => _DialogoNotaState();
+}
+
+class _DialogoNotaState extends State<_DialogoNota> {
+  late final _controller = TextEditingController(text: widget.notaInicial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
       title: const Text('Nota personal'),
       content: TextField(
-        controller: controller,
+        controller: _controller,
         autofocus: true,
         maxLength: ElementoColeccion.largoMaximoNota,
         maxLines: 3,
@@ -211,12 +236,12 @@ Future<String?> pedirNota(BuildContext context, String notaActual) {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, controller.text),
+          onPressed: () => Navigator.pop(context, _controller.text),
           child: const Text('Guardar'),
         ),
       ],
-    ),
-  ).whenComplete(controller.dispose);
+    );
+  }
 }
 
 /// Abre la hoja para guardar [elemento] (una foto o un lugar) en una o más

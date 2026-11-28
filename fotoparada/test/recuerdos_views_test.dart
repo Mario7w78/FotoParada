@@ -10,6 +10,7 @@ import 'package:fotoparada/view/collection_detail_view.dart';
 import 'package:fotoparada/view/collections_view.dart';
 import 'package:fotoparada/view/compare_photos_view.dart';
 import 'package:fotoparada/view/timeline_view.dart';
+import 'package:fotoparada/view/widgets/recuerdos_widgets.dart';
 import 'package:fotoparada/viewmodel/collection_detail_viewmodel.dart';
 import 'package:fotoparada/viewmodel/collections_viewmodel.dart';
 import 'package:fotoparada/viewmodel/compare_photos_viewmodel.dart';
@@ -136,6 +137,33 @@ void main() {
       expect(viewModel.posicion, 1);
       viewModel.dispose();
     });
+  });
+
+  group('pedirNota', () {
+    for (final (boton, esperado) in [
+      ('Guardar', 'Ir de noche'),
+      ('Cancelar', null),
+    ]) {
+      testWidgets('$boton cierra el diálogo sin errores', (tester) async {
+        String? resultado = 'sin respuesta';
+        await tester.pumpWidget(app(Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async =>
+                  resultado = await pedirNota(context, 'Ir de noche'),
+              child: const Text('abrir'),
+            ),
+          ),
+        )));
+        await tester.tap(find.text('abrir'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(boton));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(resultado, esperado);
+      });
+    }
   });
 
   group('Pantallas', () {
