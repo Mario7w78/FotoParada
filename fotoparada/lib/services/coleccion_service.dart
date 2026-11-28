@@ -78,11 +78,26 @@ class ColeccionService {
     required String nombre,
     String descripcion = '',
   }) async {
+    final coleccion = prepararColeccion(
+      uid: uid,
+      nombre: nombre,
+      descripcion: descripcion,
+    );
+    await guardarColeccion(coleccion);
+    return coleccion;
+  }
+
+  /// Valida los datos y arma una colección nueva, con su id definitivo, sin
+  /// llamar al servidor.
+  Coleccion prepararColeccion({
+    required String uid,
+    required String nombre,
+    String descripcion = '',
+  }) {
     final nombreLimpio = _validarNombre(nombre);
-    final documento = _colecciones.doc();
     final ahora = DateTime.now();
-    final coleccion = Coleccion(
-      id: documento.id,
+    return Coleccion(
+      id: _colecciones.doc().id,
       uid: uid,
       nombre: nombreLimpio,
       descripcion: _validarDescripcion(descripcion),
@@ -92,10 +107,11 @@ class ColeccionService {
       fechaCreacion: ahora,
       fechaActualizacion: ahora,
     );
+  }
 
+  Future<void> guardarColeccion(Coleccion coleccion) async {
     try {
-      await documento.set(coleccion.toMap());
-      return coleccion;
+      await _colecciones.doc(coleccion.id).set(coleccion.toMap());
     } on FirebaseException catch (e) {
       throw RecuerdosException.desdeFirebase(e);
     }

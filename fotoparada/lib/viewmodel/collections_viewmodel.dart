@@ -21,16 +21,22 @@ class CollectionsViewModel extends ChangeNotifier {
   StreamSubscription<List<Coleccion>>? _suscripcion;
 
   List<Coleccion> _colecciones = [];
-  List<Coleccion> get colecciones => _colecciones;
+
+  /// Sin las que se están eliminando.
+  List<Coleccion> get colecciones => _eliminando.isEmpty
+      ? _colecciones
+      : _colecciones.where((c) => !_eliminando.contains(c.id)).toList();
+
+  final Set<String> _eliminando = {};
 
   List<Coleccion> get predeterminadas =>
-      _colecciones.where((c) => c.esPredeterminada).toList();
+      colecciones.where((c) => c.esPredeterminada).toList();
 
   List<Coleccion> get personalizadas =>
-      _colecciones.where((c) => !c.esPredeterminada).toList();
+      colecciones.where((c) => !c.esPredeterminada).toList();
 
   int get totalGuardados =>
-      _colecciones.fold(0, (total, c) => total + c.cantidad);
+      colecciones.fold(0, (total, c) => total + c.cantidad);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -41,9 +47,6 @@ class CollectionsViewModel extends ChangeNotifier {
   /// Error de la última acción (crear, editar, eliminar).
   String? _errorAccion;
   String? get errorAccion => _errorAccion;
-
-  bool _isGuardando = false;
-  bool get isGuardando => _isGuardando;
 
   bool _disposed = false;
 
@@ -149,26 +152,30 @@ class CollectionsViewModel extends ChangeNotifier {
     return resultado ?? false;
   }
 
+  /// La colección desaparece al instante y vuelve si el borrado falla.
   Future<bool> eliminarColeccion(Coleccion coleccion) async {
+    if (!_eliminando.add(coleccion.id)) return false;
+    notifyListeners();
     final resultado = await _ejecutar(() async {
       await _service.eliminarColeccion(coleccion);
+      _colecciones =
+          _colecciones.where((c) => c.id != coleccion.id).toList();
       return true;
     });
+    _eliminando.remove(coleccion.id);
+    notifyListeners();
     return resultado ?? false;
   }
 
   bool _nombreRepetido(String nombre, {String? excepto}) {
     final buscado = nombre.trim().toLowerCase();
-    return _colecciones.any(
+    return colecciones.any(
       (c) => c.id != excepto && c.nombre.trim().toLowerCase() == buscado,
     );
   }
 
   Future<T?> _ejecutar<T>(Future<T> Function() accion) async {
-    if (_isGuardando) return null;
-    _isGuardando = true;
     _errorAccion = null;
-    notifyListeners();
     try {
       return await accion();
     } catch (error) {
@@ -176,10 +183,8 @@ class CollectionsViewModel extends ChangeNotifier {
         error,
         'No se pudo completar la acción. Intenta de nuevo.',
       );
-      return null;
-    } finally {
-      _isGuardando = false;
       notifyListeners();
+      return null;
     }
   }
 }

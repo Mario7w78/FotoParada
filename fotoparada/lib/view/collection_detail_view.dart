@@ -5,6 +5,7 @@ import '../models/foto_model.dart';
 import '../routes/app_routes.dart';
 import '../viewmodel/collection_detail_viewmodel.dart';
 import 'collections_view.dart';
+import 'widgets/envio_segundo_plano.dart';
 import 'widgets/foto_widgets.dart';
 import 'widgets/interaccion_widgets.dart';
 import 'widgets/recuerdos_widgets.dart';
@@ -55,7 +56,9 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
 
   void _mostrarMensaje(String texto) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(texto)));
   }
 
   void _mostrarError() {
@@ -78,10 +81,18 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
 
   Future<void> _eliminarColeccion() async {
     final coleccion = _viewModel.coleccion;
-    if (!await confirmarEliminarColeccion(context, coleccion)) return;
-    final exito = await _viewModel.eliminarColeccion();
-    if (!exito) _mostrarError();
-    // Si se eliminó, el listener cierra la pantalla.
+    if (!await confirmarEliminarColeccion(context, coleccion) || !mounted) {
+      return;
+    }
+    // Se vuelve a la lista sin esperar; esta pantalla ya no debe cerrarse sola.
+    _cerrando = true;
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: viewModel.eliminarColeccion,
+      error: () => viewModel.errorAccion,
+      mensaje: 'Colección eliminada',
+    );
   }
 
   void _verLineaDeTiempo(ElementoColeccion elemento) {
@@ -102,22 +113,24 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
     Navigator.pushNamed(context, AppRoutes.photoInteractions, arguments: foto);
   }
 
-  Future<void> _quitar(ElementoColeccion elemento) async {
-    final exito = await _viewModel.quitar(elemento);
-    if (exito) {
-      _mostrarMensaje('Se quitó "${elemento.titulo}" de la colección');
-    } else {
-      _mostrarError();
-    }
+  /// La pantalla ya cambió al llamar a [accion]; aquí solo se confirma y se
+  /// avisa si falla.
+  Future<void> _avisar(Future<bool> accion, String mensaje) async {
+    _mostrarMensaje(mensaje);
+    if (!await accion) _mostrarError();
   }
 
+  Future<void> _quitar(ElementoColeccion elemento) => _avisar(
+        _viewModel.quitar(elemento),
+        'Se quitó "${elemento.titulo}" de la colección',
+      );
+
   Future<void> _marcarVisitado(ElementoColeccion elemento) async {
-    final exito = await _viewModel.marcarVisitado(elemento);
-    if (exito) {
-      _mostrarMensaje('"${elemento.titulo}" pasó a Mis viajes ✈️');
-    } else {
-      _mostrarError();
-    }
+    if (!_viewModel.puedeMarcarVisitado) return;
+    await _avisar(
+      _viewModel.marcarVisitado(elemento),
+      '"${elemento.titulo}" pasó a Mis viajes ✈️',
+    );
   }
 
   Future<void> _mover(ElementoColeccion elemento) async {
@@ -152,12 +165,10 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
       ),
     );
     if (destino == null) return;
-    final exito = await _viewModel.moverA(elemento, destino);
-    if (exito) {
-      _mostrarMensaje('Movido a "${destino.nombre}"');
-    } else {
-      _mostrarError();
-    }
+    await _avisar(
+      _viewModel.moverA(elemento, destino),
+      'Movido a "${destino.nombre}"',
+    );
   }
 
   Future<void> _editarNota(ElementoColeccion elemento) async {
@@ -382,7 +393,6 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
             child: _TarjetaLugar(
               key: ValueKey(lugar.id),
               elemento: lugar,
-              ocupado: _viewModel.estaOcupado(lugar),
               mostrarVisitado: _viewModel.puedeMarcarVisitado,
               onTap: () => _verLineaDeTiempo(lugar),
               onVisitado: () => _marcarVisitado(lugar),
@@ -415,7 +425,6 @@ class _CollectionDetailViewState extends State<CollectionDetailView> {
             return _MiniaturaFoto(
               key: ValueKey(foto.id),
               elemento: foto,
-              ocupado: _viewModel.estaOcupado(foto),
               onTap: () => _abrirFoto(foto),
               onLongPress: () => _opciones(foto),
             );
@@ -459,7 +468,6 @@ class _TarjetaLugar extends StatelessWidget {
   const _TarjetaLugar({
     super.key,
     required this.elemento,
-    required this.ocupado,
     required this.mostrarVisitado,
     required this.onTap,
     required this.onVisitado,
@@ -467,7 +475,6 @@ class _TarjetaLugar extends StatelessWidget {
   });
 
   final ElementoColeccion elemento;
-  final bool ocupado;
   final bool mostrarVisitado;
   final VoidCallback onTap;
   final VoidCallback onVisitado;
@@ -476,7 +483,7 @@ class _TarjetaLugar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TarjetaBlanca(
-      onTap: ocupado ? null : onTap,
+      onTap: onTap,
       padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
       child: Row(
         children: [
@@ -525,31 +532,20 @@ class _TarjetaLugar extends StatelessWidget {
               ],
             ),
           ),
-          if (ocupado)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else ...[
-            if (mostrarVisitado)
-              IconButton(
-                tooltip: 'Ya lo visité',
-                onPressed: onVisitado,
-                icon: const Icon(
-                  Icons.check_circle_outline,
-                  color: ColoresFotoParada.verde,
-                ),
-              ),
+          if (mostrarVisitado)
             IconButton(
-              tooltip: 'Opciones',
-              onPressed: onOpciones,
-              icon: const Icon(Icons.more_vert, color: ColoresFotoParada.gris),
+              tooltip: 'Ya lo visité',
+              onPressed: onVisitado,
+              icon: const Icon(
+                Icons.check_circle_outline,
+                color: ColoresFotoParada.verde,
+              ),
             ),
-          ],
+          IconButton(
+            tooltip: 'Opciones',
+            onPressed: onOpciones,
+            icon: const Icon(Icons.more_vert, color: ColoresFotoParada.gris),
+          ),
         ],
       ),
     );
@@ -560,13 +556,11 @@ class _MiniaturaFoto extends StatelessWidget {
   const _MiniaturaFoto({
     super.key,
     required this.elemento,
-    required this.ocupado,
     required this.onTap,
     required this.onLongPress,
   });
 
   final ElementoColeccion elemento;
-  final bool ocupado;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -588,16 +582,10 @@ class _MiniaturaFoto extends StatelessWidget {
                 child: Icon(Icons.sticky_note_2, size: 13, color: Colors.white),
               ),
             ),
-          if (ocupado)
-            const ColoredBox(
-              color: Colors.black54,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            Material(
-              type: MaterialType.transparency,
-              child: InkWell(onTap: onTap, onLongPress: onLongPress),
-            ),
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(onTap: onTap, onLongPress: onLongPress),
+          ),
         ],
       ),
     );

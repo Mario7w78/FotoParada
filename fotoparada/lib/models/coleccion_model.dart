@@ -281,6 +281,19 @@ class ElementoColeccion {
     };
   }
 
+  ElementoColeccion conNota(String nuevaNota) => ElementoColeccion(
+        id: id,
+        tipo: tipo,
+        titulo: titulo,
+        nombreLugar: nombreLugar,
+        latitud: latitud,
+        longitud: longitud,
+        fechaAgregado: fechaAgregado,
+        fotoId: fotoId,
+        urlImagen: urlImagen,
+        nota: nuevaNota,
+      );
+
   /// Lugar al que pertenece, para abrir su línea de tiempo.
   Lugar get lugar => Lugar(
         nombre: nombreLugar.isNotEmpty

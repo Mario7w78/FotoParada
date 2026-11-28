@@ -287,6 +287,9 @@ class UploadPhotoViewModel extends ChangeNotifier {
     }
   }
 
+  /// Lo que impide publicar, o null. No llama al servidor.
+  String? get errorDeValidacion => _validar(_authService.uid);
+
   String? _validar(String? uid) {
     if (_imagen == null) return 'Elige una foto con la cámara o la galería.';
     if (_titulo.trim().isEmpty) return 'Escribe un título para la foto.';

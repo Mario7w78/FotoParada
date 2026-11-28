@@ -101,7 +101,7 @@ class EditPhotoViewModel extends ChangeNotifier {
   Future<bool> guardar() async {
     if (_isLoading || !hayCambios) return false;
 
-    final errorValidacion = _validar();
+    final errorValidacion = errorDeValidacion;
     if (errorValidacion != null) {
       _errorMessage = errorValidacion;
       notifyListeners();
@@ -156,7 +156,8 @@ class EditPhotoViewModel extends ChangeNotifier {
     }
   }
 
-  String? _validar() {
+  /// Lo que impide guardar, o null. No llama al servidor.
+  String? get errorDeValidacion {
     if (_foto.titulo.trim().isEmpty) return 'Escribe un título para la foto.';
     if (_isLoadingUbicacion) return 'Espera a que se obtenga la ubicación.';
     return null;

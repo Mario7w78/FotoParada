@@ -141,6 +141,19 @@ class CreateChallengeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Lo que impide publicar el reto, o null. No llama al servidor.
+  String? get errorDeValidacion {
+    if (_authService.uid == null) {
+      return 'Debes iniciar sesión para crear un reto.';
+    }
+    if (_isLoadingUbicacion) return 'Espera a que se obtenga la ubicación.';
+    if (_titulo.trim().isEmpty) return 'Escribe un título para el reto.';
+    if (!_fechaFin.isAfter(DateTime.now())) {
+      return 'La fecha de fin debe ser posterior a hoy.';
+    }
+    return null;
+  }
+
   /// Devuelve el reto creado, o null si falló (el motivo queda en
   /// [errorMessage]).
   Future<Reto?> crear() async {

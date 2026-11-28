@@ -21,10 +21,14 @@ class MyPhotosViewModel extends ChangeNotifier {
   PrivacidadFoto? _filtro;
   PrivacidadFoto? get filtro => _filtro;
 
-  List<Foto> get fotos {
-    if (_filtro == null) return _todas;
-    return _todas.where((foto) => foto.privacidad == _filtro).toList();
-  }
+  /// Sin las que se están eliminando.
+  List<Foto> get fotos => _todas
+      .where(
+        (foto) =>
+            !_eliminando.contains(foto.id) &&
+            (_filtro == null || foto.privacidad == _filtro),
+      )
+      .toList();
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -38,11 +42,12 @@ class MyPhotosViewModel extends ChangeNotifier {
   String? get errorEliminar => _errorEliminar;
 
   /// El usuario no tiene ninguna foto, sea cual sea el filtro.
-  bool get sinFotos => !_isLoading && _errorMessage == null && _todas.isEmpty;
+  bool get sinFotos =>
+      !_isLoading &&
+      _errorMessage == null &&
+      _todas.every((foto) => _eliminando.contains(foto.id));
 
   final Set<String> _eliminando = {};
-  bool estaEliminando(Foto foto) => _eliminando.contains(foto.id);
-
   bool _disposed = false;
 
   @override
@@ -99,7 +104,7 @@ class MyPhotosViewModel extends ChangeNotifier {
   }
 
   /// Devuelve true si se eliminó. Si no, deja el motivo en [errorEliminar].
-  /// La foto desaparece de la lista cuando Firestore confirma el borrado.
+  /// La foto desaparece de la lista al instante y vuelve si el borrado falla.
   Future<bool> eliminarFoto(Foto foto) async {
     if (!_eliminando.add(foto.id)) return false;
     _errorEliminar = null;
@@ -107,6 +112,7 @@ class MyPhotosViewModel extends ChangeNotifier {
 
     try {
       await _photoService.eliminarFoto(foto);
+      _todas = _todas.where((f) => f.id != foto.id).toList();
       return true;
     } on PhotoException catch (e) {
       _errorEliminar = e.message;

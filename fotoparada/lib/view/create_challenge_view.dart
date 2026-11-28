@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/foto_model.dart';
 import '../viewmodel/create_challenge_viewmodel.dart';
+import 'widgets/envio_segundo_plano.dart';
 import 'widgets/interaccion_widgets.dart';
 import 'widgets/mapa_punto.dart';
 
@@ -56,16 +57,18 @@ class _CreateChallengeViewState extends State<CreateChallengeView> {
     }
   }
 
-  Future<void> _crear() async {
+  void _crear() {
     FocusScope.of(context).unfocus();
-    final reto = await _viewModel.crear();
-    if (!mounted) return;
-    if (reto != null) {
-      _mostrarMensaje('¡Reto publicado!');
-      Navigator.pop(context, reto);
-    } else if (_viewModel.errorMessage != null) {
-      _mostrarMensaje(_viewModel.errorMessage!);
-    }
+    final invalido = _viewModel.errorDeValidacion;
+    if (invalido != null) return _mostrarMensaje(invalido);
+
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: () async => await viewModel.crear() != null,
+      error: () => viewModel.errorMessage,
+      mensaje: '¡Reto publicado!',
+    );
   }
 
   @override

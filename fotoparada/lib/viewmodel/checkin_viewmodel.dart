@@ -142,12 +142,15 @@ class CheckInViewModel extends ChangeNotifier {
         return false;
       }
 
+      // Ya se comprobó la distancia: se muestra validado mientras se registra.
+      // Si el registro falla, los catch de abajo lo deshacen.
+      _estado = EstadoCheckIn.validado;
+      notifyListeners();
       await _checkInService.registrar(
         uid: uid,
         lugar: destino,
         distanciaMetros: distancia,
       );
-      _estado = EstadoCheckIn.validado;
       return true;
     } on UbicacionException catch (e) {
       _estado = EstadoCheckIn.pendiente;

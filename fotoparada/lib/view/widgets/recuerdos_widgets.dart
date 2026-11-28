@@ -410,9 +410,7 @@ class _HojaGuardarState extends State<_HojaGuardar> {
           CheckboxListTile(
             key: ValueKey(coleccion.id),
             value: _viewModel.estaGuardadoEn(coleccion),
-            onChanged: _viewModel.estaOcupada(coleccion)
-                ? null
-                : (_) => _viewModel.alternar(coleccion),
+            onChanged: (_) => _viewModel.alternar(coleccion),
             secondary: PortadaColeccion(coleccion: coleccion, tamano: 44),
             title: Text(
               coleccion.nombre,

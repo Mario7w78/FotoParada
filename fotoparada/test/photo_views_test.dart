@@ -155,7 +155,23 @@ void main() {
       expect(find.text('¿Descartar los cambios?'), findsNothing);
     });
 
-    testWidgets('si guardar falla, avisa y no sale', (tester) async {
+    testWidgets('guardar vuelve sin esperar al servidor', (tester) async {
+      await abrir(tester);
+      servicio.actualizarPendiente = Completer<void>();
+      await tester.enterText(campoTitulo(), 'Otro');
+      await avanzar(tester);
+
+      await tester.tap(find.text('Guardar cambios'));
+      await avanzar(tester);
+
+      expect(find.byType(EditPhotoView), findsNothing);
+      expect(find.text('Cambios guardados'), findsOneWidget);
+      servicio.actualizarPendiente!.complete();
+      await avanzar(tester);
+    });
+
+    testWidgets('si guardar falla, avisa y reintentar conserva los cambios',
+        (tester) async {
       await abrir(tester);
       servicio.errorActualizar = const PhotoException('Sin conexión');
       await tester.enterText(campoTitulo(), 'Otro');
@@ -164,8 +180,16 @@ void main() {
       await tester.tap(find.text('Guardar cambios'));
       await avanzar(tester);
 
-      expect(find.byType(EditPhotoView), findsOneWidget);
+      expect(find.byType(EditPhotoView), findsNothing);
       expect(find.text('Sin conexión'), findsOneWidget);
+
+      servicio.errorActualizar = null;
+      await tester.tap(find.text('Reintentar'));
+      await avanzar(tester);
+
+      expect(servicio.actualizaciones, 2);
+      expect(servicio.camposActualizados, {'titulo': 'Otro'});
+      expect(find.text('Cambios guardados'), findsOneWidget);
     });
 
     testWidgets('eliminar pide confirmación y se puede cancelar',
@@ -357,11 +381,12 @@ void main() {
       await tester.tap(find.text('Eliminar'));
       await avanzar(tester);
       expect(servicio.eliminadas, [foto]);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      // Sin esperar al servidor: ya no se ve y se avisa.
+      expect(find.byKey(const ValueKey('a')), findsNothing);
+      expect(find.text('Foto eliminada'), findsOneWidget);
 
       servicio.eliminarPendiente!.complete();
       await avanzar(tester);
-      expect(find.text('Foto eliminada'), findsOneWidget);
     });
 
     testWidgets('si eliminar falla, muestra el motivo', (tester) async {

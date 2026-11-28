@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../Utils/cambios_optimistas.dart';
 import '../models/coleccion_model.dart';
 import '../models/foto_model.dart';
 import '../services/auth_service.dart';
@@ -29,7 +30,14 @@ class CollectionDetailViewModel extends ChangeNotifier {
 
   /// Se actualiza en vivo (nombre, contador) mientras la pantalla está abierta.
   Coleccion _coleccion;
-  Coleccion get coleccion => _coleccion;
+
+  /// El contador descuenta lo que se está quitando o moviendo.
+  Coleccion get coleccion {
+    final saliendo = _elementos.where((e) => _quitando.contains(e.id)).length;
+    return saliendo == 0
+        ? _coleccion
+        : _coleccion.conCantidad(_coleccion.cantidad - saliendo);
+  }
 
   /// Colección "Mis viajes" del usuario, destino de "Ya lo visité".
   Coleccion? _misViajes;
@@ -39,13 +47,19 @@ class CollectionDetailViewModel extends ChangeNotifier {
   List<Coleccion> get otrasColecciones => _otras;
 
   List<ElementoColeccion> _elementos = [];
-  List<ElementoColeccion> get elementos => _elementos;
+
+  /// Lo que se muestra: sin lo que se está quitando y con las notas nuevas.
+  List<ElementoColeccion> get elementos => [
+        for (final e in _elementos)
+          if (!_quitando.contains(e.id))
+            _notas.pendiente(e.id) ? e.conNota(_notas.valor(e.id, e.nota)) : e,
+      ];
 
   List<ElementoColeccion> get lugares =>
-      _elementos.where((e) => !e.esFoto).toList();
+      elementos.where((e) => !e.esFoto).toList();
 
   List<ElementoColeccion> get fotos =>
-      _elementos.where((e) => e.esFoto).toList();
+      elementos.where((e) => e.esFoto).toList();
 
   bool get puedeMarcarVisitado =>
       _coleccion.tipo == TipoColeccion.quieroVisitar && _misViajes != null;
@@ -63,9 +77,11 @@ class CollectionDetailViewModel extends ChangeNotifier {
   String? _errorAccion;
   String? get errorAccion => _errorAccion;
 
-  final Set<String> _ocupados = {};
-  bool estaOcupado(ElementoColeccion elemento) =>
-      _ocupados.contains(elemento.id);
+  /// Elementos que se están quitando o moviendo.
+  final Set<String> _quitando = {};
+
+  /// Notas que se están guardando, por id de elemento.
+  final CambiosOptimistas<String, String> _notas = CambiosOptimistas();
 
   bool _disposed = false;
 
@@ -166,7 +182,7 @@ class CollectionDetailViewModel extends ChangeNotifier {
   }
 
   Future<bool> quitar(ElementoColeccion elemento) {
-    return _sobre(
+    return _sacar(
       elemento,
       () => _service.quitarElemento(_coleccion.id, elemento.id),
     );
@@ -180,7 +196,7 @@ class CollectionDetailViewModel extends ChangeNotifier {
   }
 
   Future<bool> moverA(ElementoColeccion elemento, Coleccion destino) {
-    return _sobre(
+    return _sacar(
       elemento,
       () => _service.moverElemento(
         elemento: elemento,
@@ -190,11 +206,41 @@ class CollectionDetailViewModel extends ChangeNotifier {
     );
   }
 
-  Future<bool> guardarNota(ElementoColeccion elemento, String nota) {
-    return _sobre(
-      elemento,
-      () => _service.actualizarNota(_coleccion.id, elemento.id, nota),
+  /// La nota se ve al instante y vuelve a la anterior si falla.
+  Future<bool> guardarNota(ElementoColeccion elemento, String nota) async {
+    final id = elemento.id;
+    final anterior = _elementos
+            .where((e) => e.id == id)
+            .map((e) => e.nota)
+            .firstOrNull ??
+        elemento.nota;
+    _errorAccion = null;
+    final envio = _notas.aplicar(
+      clave: id,
+      nuevo: nota.trim(),
+      confirmado: _notas.valor(id, anterior),
+      enviar: (_, nueva) async {
+        await _service.actualizarNota(_coleccion.id, id, nueva);
+        _elementos = [
+          for (final e in _elementos) e.id == id ? e.conNota(nueva) : e,
+        ];
+      },
     );
+    notifyListeners();
+
+    try {
+      await envio;
+      return true;
+    } catch (error) {
+      _errorAccion = RecuerdosException.mensajeDe(
+        error,
+        'No se pudo completar la acción. Intenta de nuevo.',
+      );
+      return false;
+    } finally {
+      if (!_notas.enviando(id)) _notas.descartar(id);
+      notifyListeners();
+    }
   }
 
   /// Trae la foto original para abrir su detalle. Null si ya no existe o ya
@@ -215,15 +261,20 @@ class CollectionDetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> _sobre(
+  /// Oculta [elemento] mientras [accion] lo saca de esta colección.
+  Future<bool> _sacar(
     ElementoColeccion elemento,
     Future<void> Function() accion,
   ) async {
-    if (!_ocupados.add(elemento.id)) return false;
+    if (!_quitando.add(elemento.id)) return false;
     _errorAccion = null;
     notifyListeners();
     try {
       await accion();
+      // Si la lista aún no se actualizó, se descuenta aquí.
+      if (_elementos.any((e) => e.id == elemento.id)) {
+        _elementos = _elementos.where((e) => e.id != elemento.id).toList();
+      }
       return true;
     } catch (error) {
       _errorAccion = RecuerdosException.mensajeDe(
@@ -232,7 +283,7 @@ class CollectionDetailViewModel extends ChangeNotifier {
       );
       return false;
     } finally {
-      _ocupados.remove(elemento.id);
+      _quitando.remove(elemento.id);
       notifyListeners();
     }
   }

@@ -145,15 +145,17 @@ void main() {
 
       expect(await viewModel.eliminarFoto(foto), isTrue);
       expect(servicio.eliminadas, [foto]);
-      expect(viewModel.estaEliminando(foto), isFalse);
     });
 
-    test('marca la foto y evita eliminarla dos veces', () async {
+    test('oculta la foto al instante y evita eliminarla dos veces', () async {
+      viewModel.iniciar();
       final foto = crearFoto();
+      await emitir([foto]);
       servicio.eliminarPendiente = Completer<void>();
 
       final primero = viewModel.eliminarFoto(foto);
-      expect(viewModel.estaEliminando(foto), isTrue);
+      expect(viewModel.fotos, isEmpty);
+      expect(viewModel.sinFotos, isTrue);
       expect(await viewModel.eliminarFoto(foto), isFalse);
 
       servicio.eliminarPendiente!.complete();
@@ -171,7 +173,6 @@ void main() {
       expect(viewModel.errorEliminar, 'Sin permiso');
       expect(viewModel.errorMessage, isNull);
       expect(viewModel.fotos, hasLength(1));
-      expect(viewModel.estaEliminando(foto), isFalse);
     });
   });
 }

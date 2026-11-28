@@ -55,14 +55,16 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
   }
 
   Future<void> _enviarComentario() async {
-    final exito = await _viewModel.enviarComentario(_comentarioController.text);
-    if (!mounted) return;
-    if (exito) {
-      _comentarioController.clear();
-      FocusScope.of(context).unfocus();
-    } else {
-      _mostrarError();
-    }
+    final texto = _comentarioController.text;
+    // El campo se limpia sin esperar al servidor.
+    _comentarioController.clear();
+    if (texto.trim().isNotEmpty) FocusScope.of(context).unfocus();
+
+    final exito = await _viewModel.enviarComentario(texto);
+    if (!mounted || exito) return;
+    // Se devuelve el texto, salvo que ya se esté escribiendo otro.
+    if (_comentarioController.text.isEmpty) _comentarioController.text = texto;
+    _mostrarError();
   }
 
   Future<void> _eliminarComentario(Comentario comentario) async {
@@ -245,9 +247,7 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
                   tipo: tipo,
                   cantidad: _viewModel.conteo(tipo),
                   seleccionado: miReaccion == tipo,
-                  onTap: _viewModel.isReaccionando
-                      ? null
-                      : () => _reaccionar(tipo),
+                  onTap: () => _reaccionar(tipo),
                 ),
             ],
           ),
@@ -299,7 +299,6 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
             child: _TarjetaComentario(
               comentario: comentario,
               esDelDueno: comentario.uid == widget.foto.uid,
-              eliminando: _viewModel.estaEliminando(comentario),
               onEliminar: _viewModel.puedeEliminar(comentario)
                   ? () => _eliminarComentario(comentario)
                   : null,
@@ -349,23 +348,14 @@ class _PhotoInteractionsViewState extends State<PhotoInteractionsView> {
             ),
           ),
           const SizedBox(width: 4),
-          _viewModel.isEnviando
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton.filled(
-                  onPressed: _enviarComentario,
-                  tooltip: 'Enviar',
-                  style: IconButton.styleFrom(
-                    backgroundColor: ColoresFotoParada.azul,
-                  ),
-                  icon: const Icon(Icons.send, color: Colors.white),
-                ),
+          IconButton.filled(
+            onPressed: _enviarComentario,
+            tooltip: 'Enviar',
+            style: IconButton.styleFrom(
+              backgroundColor: ColoresFotoParada.azul,
+            ),
+            icon: const Icon(Icons.send, color: Colors.white),
+          ),
         ],
       ),
     );
@@ -383,7 +373,7 @@ class _BotonReaccion extends StatelessWidget {
   final TipoReaccion tipo;
   final int cantidad;
   final bool seleccionado;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -432,13 +422,11 @@ class _TarjetaComentario extends StatelessWidget {
   const _TarjetaComentario({
     required this.comentario,
     required this.esDelDueno,
-    required this.eliminando,
     required this.onEliminar,
   });
 
   final Comentario comentario;
   final bool esDelDueno;
-  final bool eliminando;
   final VoidCallback? onEliminar;
 
   @override
@@ -485,23 +473,14 @@ class _TarjetaComentario extends StatelessWidget {
             ),
           ),
           if (onEliminar != null)
-            eliminando
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : IconButton(
-                    onPressed: onEliminar,
-                    tooltip: 'Eliminar comentario',
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: ColoresFotoParada.gris,
-                    ),
-                  ),
+            IconButton(
+              onPressed: onEliminar,
+              tooltip: 'Eliminar comentario',
+              icon: const Icon(
+                Icons.delete_outline,
+                color: ColoresFotoParada.gris,
+              ),
+            ),
         ],
       ),
     );

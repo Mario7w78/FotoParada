@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../Utils/cambios_optimistas.dart';
 import '../models/comentario_model.dart';
 import '../models/foto_model.dart';
 import '../models/reaccion_model.dart';
@@ -27,9 +28,17 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
   String? get uid => _authService.uid;
 
   List<Comentario> _comentarios = [];
-  List<Comentario> get comentarios => _comentarios;
+
+  /// Sin los que se están eliminando.
+  List<Comentario> get comentarios => _eliminando.isEmpty
+      ? _comentarios
+      : _comentarios.where((c) => !_eliminando.contains(c.id)).toList();
 
   List<Reaccion> _reacciones = [];
+
+  /// Mi reacción mientras se envía. La clave es mi uid.
+  final CambiosOptimistas<String, TipoReaccion?> _miCambio =
+      CambiosOptimistas();
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -42,15 +51,7 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
   String? _errorAccion;
   String? get errorAccion => _errorAccion;
 
-  bool _isEnviando = false;
-  bool get isEnviando => _isEnviando;
-
-  bool _isReaccionando = false;
-  bool get isReaccionando => _isReaccionando;
-
   final Set<String> _eliminando = {};
-  bool estaEliminando(Comentario comentario) =>
-      _eliminando.contains(comentario.id);
 
   bool _disposed = false;
 
@@ -67,17 +68,36 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
     if (!_disposed) super.notifyListeners();
   }
 
-  TipoReaccion? get miReaccion {
+  TipoReaccion? get _miReaccionEnServidor {
     for (final reaccion in _reacciones) {
       if (reaccion.uid == uid) return reaccion.tipo;
     }
     return null;
   }
 
-  int get totalReacciones => _reacciones.length;
+  TipoReaccion? get miReaccion {
+    final miUid = uid;
+    if (miUid == null) return null;
+    return _miCambio.valor(miUid, _miReaccionEnServidor);
+  }
+
+  int get totalReacciones =>
+      _reacciones.where((r) => r.uid != uid).length +
+      (miReaccion == null ? 0 : 1);
 
   int conteo(TipoReaccion tipo) =>
-      _reacciones.where((reaccion) => reaccion.tipo == tipo).length;
+      _reacciones.where((r) => r.uid != uid && r.tipo == tipo).length +
+      (miReaccion == tipo ? 1 : 0);
+
+  /// Quita el cambio superpuesto cuando el servidor ya muestra lo mismo.
+  void _conciliarReaccion() {
+    final miUid = uid;
+    if (miUid == null || _miCambio.enviando(miUid)) return;
+    if (_miCambio.valor(miUid, _miReaccionEnServidor) ==
+        _miReaccionEnServidor) {
+      _miCambio.descartar(miUid);
+    }
+  }
 
   /// El autor del comentario y el dueño de la foto pueden borrarlo.
   bool puedeEliminar(Comentario comentario) =>
@@ -110,6 +130,7 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
     _subReacciones = _interactionService.obtenerReacciones(foto.id).listen(
       (reacciones) {
         _reacciones = reacciones;
+        _conciliarReaccion();
         notifyListeners();
       },
       onError: (Object error) {
@@ -120,6 +141,8 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
     );
   }
 
+  /// La reacción se ve al instante y se envía en segundo plano. Devuelve false
+  /// si falló; en ese caso la pantalla vuelve a como estaba.
   Future<bool> reaccionar(TipoReaccion tipo) async {
     final uidActual = uid;
     if (uidActual == null) {
@@ -127,29 +150,36 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (_isReaccionando) return false;
 
-    _isReaccionando = true;
+    final actual = miReaccion;
     _errorAccion = null;
+    final envio = _miCambio.aplicar(
+      clave: uidActual,
+      nuevo: actual == tipo ? null : tipo,
+      confirmado: actual,
+      // El servicio alterna: repetir la reacción actual la quita.
+      enviar: (desde, hacia) => _interactionService.reaccionar(
+        fotoId: foto.id,
+        uid: uidActual,
+        tipo: hacia ?? desde!,
+      ),
+    );
     notifyListeners();
 
     try {
-      await _interactionService.reaccionar(
-        fotoId: foto.id,
-        uid: uidActual,
-        tipo: tipo,
-      );
+      await envio;
       return true;
     } catch (error) {
       _errorAccion = _mensaje(error, 'No se pudo guardar tu reacción.');
       return false;
     } finally {
-      _isReaccionando = false;
+      _conciliarReaccion();
       notifyListeners();
     }
   }
 
-  /// Devuelve true si se publicó, para que la vista limpie el campo de texto.
+  /// Devuelve true si se publicó. No bloquea la pantalla: Firestore muestra el
+  /// comentario en la lista antes de que el servidor responda.
   Future<bool> enviarComentario(String texto) async {
     final uidActual = uid;
     if (uidActual == null) {
@@ -157,11 +187,7 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (_isEnviando) return false;
-
-    _isEnviando = true;
     _errorAccion = null;
-    notifyListeners();
 
     try {
       final nombre = _authService.displayName.trim();
@@ -174,13 +200,12 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
       return true;
     } catch (error) {
       _errorAccion = _mensaje(error, 'No se pudo publicar el comentario.');
-      return false;
-    } finally {
-      _isEnviando = false;
       notifyListeners();
+      return false;
     }
   }
 
+  /// El comentario se oculta al instante y reaparece si el borrado falla.
   Future<bool> eliminarComentario(Comentario comentario) async {
     if (!puedeEliminar(comentario)) return false;
     if (!_eliminando.add(comentario.id)) return false;
@@ -189,6 +214,9 @@ class PhotoInteractionsViewModel extends ChangeNotifier {
 
     try {
       await _interactionService.eliminarComentario(foto.id, comentario.id);
+      // Ya no existe, aunque la lista tarde en actualizarse.
+      _comentarios =
+          _comentarios.where((c) => c.id != comentario.id).toList();
       return true;
     } catch (error) {
       _errorAccion = _mensaje(error, 'No se pudo eliminar el comentario.');

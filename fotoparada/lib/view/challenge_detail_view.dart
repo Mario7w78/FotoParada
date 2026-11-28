@@ -9,6 +9,7 @@ import '../routes/app_routes.dart';
 import '../viewmodel/challenge_detail_viewmodel.dart';
 import '../viewmodel/share_location_viewmodel.dart';
 import 'challenges_view.dart';
+import 'widgets/envio_segundo_plano.dart';
 import 'widgets/foto_widgets.dart';
 import 'widgets/interaccion_widgets.dart';
 import 'widgets/mapa_punto.dart';
@@ -44,7 +45,9 @@ class _ChallengeDetailViewState extends State<ChallengeDetailView> {
   }
 
   void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   Future<void> _elegirFoto() async {
@@ -57,15 +60,14 @@ class _ChallengeDetailViewState extends State<ChallengeDetailView> {
     );
     if (foto == null || !mounted) return;
 
-    final exito = await _viewModel.enviarFoto(foto);
-    if (!mounted) return;
-    if (exito) {
-      _mostrarMensaje(
-        _viewModel.completado ? '¡Reto completado! 🎉' : '¡Foto enviada!',
-      );
-    } else if (_viewModel.errorAccion != null) {
-      _mostrarMensaje(_viewModel.errorAccion!);
-    }
+    // El progreso ya cuenta la foto mientras se envía.
+    final envio = _viewModel.enviarFoto(foto);
+    _mostrarMensaje(
+      _viewModel.completado ? '¡Reto completado! 🎉' : '¡Foto enviada!',
+    );
+    final exito = await envio;
+    if (!mounted || exito) return;
+    _mostrarMensaje(_viewModel.errorAccion ?? 'No se pudo enviar la foto.');
   }
 
   Future<void> _eliminarReto() async {
@@ -89,23 +91,22 @@ class _ChallengeDetailViewState extends State<ChallengeDetailView> {
     );
     if (confirmado != true) return;
 
-    final exito = await _viewModel.eliminarReto();
     if (!mounted) return;
-    if (exito) {
-      Navigator.pop(context);
-    } else if (_viewModel.errorAccion != null) {
-      _mostrarMensaje(_viewModel.errorAccion!);
-    }
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: viewModel.eliminarReto,
+      error: () => viewModel.errorAccion,
+      mensaje: 'Reto eliminado',
+    );
   }
 
   Future<void> _quitarFoto(Foto foto) async {
-    final exito = await _viewModel.quitarFoto(foto);
-    if (!mounted) return;
-    _mostrarMensaje(
-      exito
-          ? 'Foto retirada del reto'
-          : _viewModel.errorAccion ?? 'No se pudo quitar la foto.',
-    );
+    final retiro = _viewModel.quitarFoto(foto);
+    _mostrarMensaje('Foto retirada del reto');
+    final exito = await retiro;
+    if (!mounted || exito) return;
+    _mostrarMensaje(_viewModel.errorAccion ?? 'No se pudo quitar la foto.');
   }
 
   @override
@@ -229,21 +230,12 @@ class _ChallengeDetailViewState extends State<ChallengeDetailView> {
           const SizedBox(height: 16),
           if (activo)
             FilledButton.icon(
-              onPressed: _viewModel.isEnviando ? null : _elegirFoto,
+              onPressed: _elegirFoto,
               style: FilledButton.styleFrom(
                 backgroundColor: ColoresFotoParada.azul,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              icon: _viewModel.isEnviando
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.add_photo_alternate_outlined),
+              icon: const Icon(Icons.add_photo_alternate_outlined),
               label: const Text('Enviar una de mis fotos'),
             )
           else

@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/foto_model.dart';
 import '../viewmodel/edit_photo_viewmodel.dart';
+import 'widgets/envio_segundo_plano.dart';
 import 'widgets/formulario_foto.dart';
 import 'widgets/foto_widgets.dart';
 
@@ -45,32 +46,31 @@ class _EditPhotoViewState extends State<EditPhotoView> {
         .showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
-  Future<void> _guardar() async {
+  void _guardar() {
     FocusScope.of(context).unfocus();
-    final exito = await _viewModel.guardar();
-    if (!mounted) return;
+    final invalido = _viewModel.errorDeValidacion;
+    if (invalido != null) return _mostrarMensaje(invalido);
 
-    if (exito) {
-      _mostrarMensaje('Cambios guardados');
-      Navigator.pop(context);
-    } else if (_viewModel.errorMessage != null) {
-      _mostrarMensaje(_viewModel.errorMessage!);
-    }
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: viewModel.guardar,
+      error: () => viewModel.errorMessage,
+      mensaje: 'Cambios guardados',
+    );
   }
 
   Future<void> _eliminar() async {
     FocusScope.of(context).unfocus();
     if (!await confirmarEliminarFoto(context) || !mounted) return;
 
-    final exito = await _viewModel.eliminar();
-    if (!mounted) return;
-
-    if (exito) {
-      _mostrarMensaje('Foto eliminada');
-      Navigator.pop(context);
-    } else if (_viewModel.errorMessage != null) {
-      _mostrarMensaje(_viewModel.errorMessage!);
-    }
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: viewModel.eliminar,
+      error: () => viewModel.errorMessage,
+      mensaje: 'Foto eliminada',
+    );
   }
 
   Future<void> _elegirFecha() async {

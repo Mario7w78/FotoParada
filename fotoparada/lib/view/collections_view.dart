@@ -41,13 +41,14 @@ class _CollectionsViewState extends State<CollectionsView> {
   Future<void> _crear() async {
     final datos = await pedirDatosColeccion(context);
     if (datos == null) return;
+    // La lista la muestra al instante; solo se avisa si algo falla.
     final creada =
         await _viewModel.crearColeccion(datos.nombre, datos.descripcion);
-    _mostrarMensaje(
-      creada != null
-          ? 'Colección "${creada.nombre}" creada'
-          : _viewModel.errorAccion ?? 'No se pudo crear la colección.',
-    );
+    if (creada == null) {
+      _mostrarMensaje(
+        _viewModel.errorAccion ?? 'No se pudo crear la colección.',
+      );
+    }
   }
 
   Future<void> _editar(Coleccion coleccion) async {
@@ -71,12 +72,11 @@ class _CollectionsViewState extends State<CollectionsView> {
   Future<void> _eliminar(Coleccion coleccion) async {
     final confirmado = await confirmarEliminarColeccion(context, coleccion);
     if (!confirmado) return;
-    final exito = await _viewModel.eliminarColeccion(coleccion);
-    _mostrarMensaje(
-      exito
-          ? 'Colección eliminada'
-          : _viewModel.errorAccion ?? 'No se pudo eliminar.',
-    );
+    final eliminacion = _viewModel.eliminarColeccion(coleccion);
+    _mostrarMensaje('Colección eliminada');
+    if (!await eliminacion) {
+      _mostrarMensaje(_viewModel.errorAccion ?? 'No se pudo eliminar.');
+    }
   }
 
   void _abrir(Coleccion coleccion) {
@@ -107,7 +107,7 @@ class _CollectionsViewState extends State<CollectionsView> {
                       icono: Icons.add,
                       tooltip: 'Nueva colección',
                       color: ColoresFotoParada.azul,
-                      onPressed: _viewModel.isGuardando ? null : _crear,
+                      onPressed: _crear,
                     ),
                   ],
                 ),
@@ -181,7 +181,7 @@ class _CollectionsViewState extends State<CollectionsView> {
           icono: Icons.collections_bookmark_outlined,
           titulo: 'Mis colecciones (${personalizadas.length})',
           accion: TextButton.icon(
-            onPressed: _viewModel.isGuardando ? null : _crear,
+            onPressed: _crear,
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nueva'),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../viewmodel/upload_photo_viewmodel.dart';
+import 'widgets/envio_segundo_plano.dart';
 import 'widgets/formulario_foto.dart';
 import 'widgets/foto_widgets.dart';
 
@@ -50,17 +51,20 @@ class _UploadPhotoViewState extends State<UploadPhotoView> {
     }
   }
 
-  Future<void> _publicar() async {
+  void _publicar() {
     FocusScope.of(context).unfocus();
-    final exito = await _viewModel.publicar();
-    if (!mounted) return;
+    final invalido = _viewModel.errorDeValidacion;
+    if (invalido != null) return _mostrarMensaje(invalido);
 
-    if (exito) {
-      _mostrarMensaje('¡Foto publicada!');
-      Navigator.pop(context);
-    } else if (_viewModel.errorMessage != null) {
-      _mostrarMensaje(_viewModel.errorMessage!);
-    }
+    // Comprimir y subir tarda: sigue en segundo plano.
+    final viewModel = _viewModel;
+    cerrarYEnviar(
+      context,
+      envio: viewModel.publicar,
+      error: () => viewModel.errorMessage,
+      mensaje: 'Subiendo tu foto…',
+      mensajeFinal: '¡Foto publicada!',
+    );
   }
 
   Future<void> _elegirFecha() async {

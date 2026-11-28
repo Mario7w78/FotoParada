@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../Utils/cambios_optimistas.dart';
 import '../models/coleccion_model.dart';
 import '../services/auth_service.dart';
 import '../services/coleccion_service.dart';
@@ -19,17 +20,28 @@ class SaveToCollectionViewModel extends ChangeNotifier {
   final AuthService _authService;
 
   List<Coleccion> _colecciones = [];
-  List<Coleccion> get colecciones => _colecciones;
 
-  /// Ids de las colecciones que ya tienen el elemento.
+  /// Con el contador ya ajustado a los cambios en camino.
+  List<Coleccion> get colecciones => [
+        for (final c in _colecciones)
+          estaGuardadoEn(c) == _marcadas.contains(c.id)
+              ? c
+              : c.conCantidad(c.cantidad + (estaGuardadoEn(c) ? 1 : -1)),
+      ];
+
+  /// Ids de las colecciones que según el servidor tienen el elemento.
   Set<String> _marcadas = {};
+
+  /// Casillas tocadas que se están enviando, por id de colección.
+  final CambiosOptimistas<String, bool> _cambios = CambiosOptimistas();
+
   bool estaGuardadoEn(Coleccion coleccion) =>
-      _marcadas.contains(coleccion.id);
+      _cambios.valor(coleccion.id, _marcadas.contains(coleccion.id));
 
-  bool get guardadoEnAlguna => _marcadas.isNotEmpty;
+  bool get guardadoEnAlguna => _colecciones.any(estaGuardadoEn);
 
-  final Set<String> _ocupadas = {};
-  bool estaOcupada(Coleccion coleccion) => _ocupadas.contains(coleccion.id);
+  /// Colecciones nuevas que el servidor aún está creando.
+  final Map<String, Future<void>> _creando = {};
 
   bool _isLoading = true;
   bool get isLoading => _isLoading;
@@ -83,22 +95,34 @@ class SaveToCollectionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Guarda o quita el elemento de [coleccion].
+  /// Guarda o quita el elemento de [coleccion]. La casilla cambia al instante y
+  /// vuelve atrás si el servidor falla.
   Future<bool> alternar(Coleccion coleccion) async {
-    if (!_ocupadas.add(coleccion.id)) return false;
+    final id = coleccion.id;
     _errorAccion = null;
+    final envio = _cambios.aplicar(
+      clave: id,
+      nuevo: !estaGuardadoEn(coleccion),
+      confirmado: _marcadas.contains(id),
+      enviar: (_, guardar) async {
+        // Una colección recién creada debe existir antes de guardar en ella.
+        final creacion = _creando[id];
+        if (creacion != null) await creacion;
+        if (guardar) {
+          final agregado = await _service.agregarElemento(id, elemento);
+          _marcadas = {..._marcadas, id};
+          if (agregado) _cambiarCantidad(id, 1);
+        } else {
+          await _service.quitarElemento(id, elemento.id);
+          _marcadas = {..._marcadas}..remove(id);
+          _cambiarCantidad(id, -1);
+        }
+      },
+    );
     notifyListeners();
+
     try {
-      if (_marcadas.contains(coleccion.id)) {
-        await _service.quitarElemento(coleccion.id, elemento.id);
-        _marcadas = {..._marcadas}..remove(coleccion.id);
-        _cambiarCantidad(coleccion.id, -1);
-      } else {
-        final agregado =
-            await _service.agregarElemento(coleccion.id, elemento);
-        _marcadas = {..._marcadas, coleccion.id};
-        if (agregado) _cambiarCantidad(coleccion.id, 1);
-      }
+      await envio;
       return true;
     } catch (error) {
       _errorAccion = RecuerdosException.mensajeDe(
@@ -107,7 +131,7 @@ class SaveToCollectionViewModel extends ChangeNotifier {
       );
       return false;
     } finally {
-      _ocupadas.remove(coleccion.id);
+      if (!_cambios.enviando(id)) _cambios.descartar(id);
       notifyListeners();
     }
   }
@@ -119,7 +143,7 @@ class SaveToCollectionViewModel extends ChangeNotifier {
     ];
   }
 
-  /// Crea una colección y guarda ahí el elemento.
+  /// Crea una colección y guarda ahí el elemento. Aparece marcada al instante.
   Future<bool> crearYGuardar(String nombre) async {
     final uid = _authService.uid;
     if (uid == null) return false;
@@ -133,11 +157,9 @@ class SaveToCollectionViewModel extends ChangeNotifier {
     }
 
     _errorAccion = null;
+    final Coleccion nueva;
     try {
-      final nueva = await _service.crearColeccion(uid: uid, nombre: nombre);
-      _colecciones = [..._colecciones, nueva];
-      notifyListeners();
-      return await alternar(nueva);
+      nueva = _service.prepararColeccion(uid: uid, nombre: nombre);
     } catch (error) {
       _errorAccion = RecuerdosException.mensajeDe(
         error,
@@ -146,5 +168,26 @@ class SaveToCollectionViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+
+    _colecciones = [..._colecciones, nueva];
+    final creacion = _service.guardarColeccion(nueva);
+    _creando[nueva.id] = creacion;
+    final marcado = alternar(nueva);
+
+    try {
+      await creacion;
+    } catch (error) {
+      await marcado;
+      _colecciones = _colecciones.where((c) => c.id != nueva.id).toList();
+      _errorAccion = RecuerdosException.mensajeDe(
+        error,
+        'No se pudo crear la colección.',
+      );
+      notifyListeners();
+      return false;
+    } finally {
+      _creando.remove(nueva.id);
+    }
+    return marcado;
   }
 }

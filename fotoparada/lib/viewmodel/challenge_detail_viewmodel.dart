@@ -31,10 +31,42 @@ class ChallengeDetailViewModel extends ChangeNotifier {
   bool get esCreador => uid != null && reto.creadorUid == uid;
 
   List<ParticipacionReto> _participantes = [];
-  List<ParticipacionReto> get participantes => _participantes;
+
+  /// Mis fotos en camino: true si se está enviando, false si se está retirando.
+  final Map<String, bool> _enCamino = {};
+
+  /// Los del servidor, con mis cambios en camino ya aplicados.
+  List<ParticipacionReto> get participantes => _conCambios(_enCamino);
+
+  /// Los participantes con [cambios] aplicados a mi participación.
+  List<ParticipacionReto> _conCambios(Map<String, bool> cambios) {
+    final miUid = uid;
+    if (miUid == null || cambios.isEmpty) return _participantes;
+
+    final mia = _participantes.where((p) => p.uid == miUid).firstOrNull;
+    final ids = [
+      for (final id in mia?.fotoIds ?? const <String>[])
+        if (cambios[id] != false) id,
+    ];
+    for (final cambio in cambios.entries) {
+      if (cambio.value && !ids.contains(cambio.key)) ids.add(cambio.key);
+    }
+    final nombre = _authService.displayName.trim();
+    final ajustada = ParticipacionReto(
+      uid: miUid,
+      nombreUsuario:
+          mia?.nombreUsuario ?? (nombre.isEmpty ? 'Usuario' : nombre),
+      fotoIds: ids,
+      fechaActualizacion: mia?.fechaActualizacion ?? DateTime.now(),
+    );
+    return [
+      for (final p in _participantes) p.uid == miUid ? ajustada : p,
+      if (mia == null && ids.isNotEmpty) ajustada,
+    ];
+  }
 
   ParticipacionReto? get miParticipacion {
-    for (final participacion in _participantes) {
+    for (final participacion in participantes) {
       if (participacion.uid == uid) return participacion;
     }
     return null;
@@ -48,7 +80,7 @@ class ChallengeDetailViewModel extends ChangeNotifier {
   bool get completado => misFotosEnviadas >= reto.fotosObjetivo;
 
   int get completaron =>
-      _participantes.where((p) => p.completo(reto)).length;
+      participantes.where((p) => p.completo(reto)).length;
 
   /// Fotos enviadas al reto ya descargadas, por id.
   final Map<String, Foto> _fotos = {};
@@ -57,7 +89,7 @@ class ChallengeDetailViewModel extends ChangeNotifier {
   /// Fotos enviadas por todos, de la más reciente a la más antigua. Omite las
   /// que ya no existen o se volvieron privadas.
   List<Foto> get fotosEnviadas {
-    final lista = _participantes
+    final lista = participantes
         .expand((participacion) => participacion.fotoIds)
         .map((id) => _fotos[id])
         .whereType<Foto>()
@@ -74,9 +106,6 @@ class ChallengeDetailViewModel extends ChangeNotifier {
 
   String? _errorAccion;
   String? get errorAccion => _errorAccion;
-
-  bool _isEnviando = false;
-  bool get isEnviando => _isEnviando;
 
   bool _disposed = false;
 
@@ -148,53 +177,76 @@ class ChallengeDetailViewModel extends ChangeNotifier {
         .toList();
   }
 
+  /// La foto cuenta en el progreso al instante y se descuenta si falla.
   Future<bool> enviarFoto(Foto foto) async {
     final uidActual = uid;
-    if (uidActual == null || _isEnviando) return false;
+    if (uidActual == null || _enCamino.containsKey(foto.id)) return false;
 
-    _isEnviando = true;
-    _errorAccion = null;
-    notifyListeners();
-
-    try {
-      final nombre = _authService.displayName.trim();
-      await _challengeService.enviarFoto(
-        reto: reto,
-        foto: foto,
-        uid: uidActual,
-        nombreUsuario: nombre.isEmpty ? 'Usuario' : nombre,
-      );
-      _fotos[foto.id] = foto;
-      _pedidas.add(foto.id);
-      return true;
-    } on InteraccionException catch (e) {
-      _errorAccion = e.message;
-      return false;
-    } catch (_) {
-      _errorAccion = 'No se pudo enviar la foto. Intenta de nuevo.';
-      return false;
-    } finally {
-      _isEnviando = false;
-      notifyListeners();
-    }
+    final yaDescargada = _fotos.containsKey(foto.id);
+    _fotos[foto.id] = foto;
+    _pedidas.add(foto.id);
+    return _cambiarFoto(
+      foto,
+      enviar: true,
+      porDefecto: 'No se pudo enviar la foto. Intenta de nuevo.',
+      accion: () {
+        final nombre = _authService.displayName.trim();
+        return _challengeService.enviarFoto(
+          reto: reto,
+          foto: foto,
+          uid: uidActual,
+          nombreUsuario: nombre.isEmpty ? 'Usuario' : nombre,
+        );
+      },
+      alFallar: () {
+        if (yaDescargada) return;
+        _fotos.remove(foto.id);
+        _pedidas.remove(foto.id);
+      },
+    );
   }
 
   Future<bool> quitarFoto(Foto foto) async {
     final uidActual = uid;
     if (uidActual == null || foto.uid != uidActual) return false;
-    _errorAccion = null;
+    if (_enCamino.containsKey(foto.id)) return false;
 
-    try {
-      await _challengeService.quitarFoto(
+    return _cambiarFoto(
+      foto,
+      enviar: false,
+      porDefecto: 'No se pudo quitar la foto.',
+      accion: () => _challengeService.quitarFoto(
         retoId: reto.id,
         uid: uidActual,
         fotoId: foto.id,
-      );
+      ),
+    );
+  }
+
+  Future<bool> _cambiarFoto(
+    Foto foto, {
+    required bool enviar,
+    required String porDefecto,
+    required Future<void> Function() accion,
+    void Function()? alFallar,
+  }) async {
+    _errorAccion = null;
+    _enCamino[foto.id] = enviar;
+    notifyListeners();
+
+    try {
+      await accion();
+      // La lista local queda como la del servidor aunque aún no haya llegado.
+      _participantes = _conCambios({foto.id: enviar});
       return true;
-    } on InteraccionException catch (e) {
-      _errorAccion = e.message;
-      notifyListeners();
+    } catch (error) {
+      _errorAccion =
+          error is InteraccionException ? error.message : porDefecto;
+      alFallar?.call();
       return false;
+    } finally {
+      _enCamino.remove(foto.id);
+      notifyListeners();
     }
   }
 
@@ -204,8 +256,10 @@ class ChallengeDetailViewModel extends ChangeNotifier {
     try {
       await _challengeService.eliminarReto(reto.id);
       return true;
-    } on InteraccionException catch (e) {
-      _errorAccion = e.message;
+    } catch (error) {
+      _errorAccion = error is InteraccionException
+          ? error.message
+          : 'No se pudo eliminar el reto.';
       notifyListeners();
       return false;
     }

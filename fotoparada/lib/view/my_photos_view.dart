@@ -49,18 +49,17 @@ class _MyPhotosViewState extends State<MyPhotosView> {
 
     if (!await confirmarEliminarFoto(context) || !mounted) return;
 
-    final exito = await _viewModel.eliminarFoto(foto);
-    if (!mounted) return;
+    final mensajes = ScaffoldMessenger.of(context);
+    void avisar(String texto) => mensajes
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(texto)));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          exito
-              ? 'Foto eliminada'
-              : _viewModel.errorEliminar ?? 'No se pudo eliminar la foto.',
-        ),
-      ),
-    );
+    // La foto ya no se ve; solo se avisa de nuevo si el borrado falla.
+    final eliminacion = _viewModel.eliminarFoto(foto);
+    avisar('Foto eliminada');
+    if (!await eliminacion && mounted) {
+      avisar(_viewModel.errorEliminar ?? 'No se pudo eliminar la foto.');
+    }
   }
 
   @override
@@ -190,7 +189,6 @@ class _MyPhotosViewState extends State<MyPhotosView> {
   }
 
   Widget _construirMiniatura(Foto foto) {
-    final eliminando = _viewModel.estaEliminando(foto);
     return ClipRRect(
       key: ValueKey(foto.id),
       borderRadius: BorderRadius.circular(8),
@@ -214,23 +212,17 @@ class _MyPhotosViewState extends State<MyPhotosView> {
               ),
             ),
           ),
-          if (eliminando)
-            const ColoredBox(
-              color: Colors.black54,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.editPhoto,
-                  arguments: foto,
-                ),
-                onLongPress: () => _mostrarOpciones(foto),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.editPhoto,
+                arguments: foto,
               ),
+              onLongPress: () => _mostrarOpciones(foto),
             ),
+          ),
         ],
       ),
     );
